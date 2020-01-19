@@ -1,0 +1,19 @@
+[Unit]
+Description=Distributed naming system for IPv6 mesh networks
+Wants=network.target
+After=network.target
+
+[Service]
+User=nobody
+Group=nogroup
+ProtectHome=true
+ProtectSystem=true
+SyslogIdentifier=meshnamed
+Environment="LISTEN_ADDR=127.0.0.1:53535"
+Environment="MESH_SUBNET=::/0"
+ExecStart=/usr/local/bin/meshnamed
+Restart=always
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target
