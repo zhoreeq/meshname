@@ -2,34 +2,60 @@ package main
 
 import (
 	"encoding/base32"
-	"fmt"
-	"net"
-	"strings"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net"
 	"os"
+	"strings"
 
 	"github.com/miekg/dns"
 )
 
 const domainZone = "mesh.arpa."
-const maxTtl = 4294967295
 
 var _, validSubnet, _ = net.ParseCIDR("::/0")
+var zoneConfigPath = ""
+var zoneConfig = map[string][]dns.RR{}
+var dnsClient = new(dns.Client)
 
-var srvPortMap = map[string]uint16{
-	"_xmpp-client._tcp": 5222,
-	"_xmpp-server._tcp": 5269,
-	"_submission._tcp": 587, // rfc6186
-	"_imap._tcp": 143,
-	"_imaps._tcp": 993,
-	"_pop3._tcp": 110,
-	"_pop3s._tcp": 995,
-	"_matrix._tcp": 8448, // https://matrix.org/docs/spec/server_server/unstable#server-discovery
-	"_sip._tcp": 5060, // rfc3263
-	"_sip._udp": 5060,
-	"_sips._tcp": 5061,
+func loadConfig() {
+	if zoneConfigPath == "" {
+		return
+	}
+
+	reader, err := os.Open(zoneConfigPath)
+	if err != nil {
+		fmt.Println("Can't open config:", err)
+		return
+	}
+
+	type Zone struct {
+		Domain  string
+		Records []string
+	}
+
+	dec := json.NewDecoder(reader)
+	for {
+		var m Zone
+		if err := dec.Decode(&m); err == io.EOF {
+			break
+		} else if err != nil {
+			fmt.Println("Syntax error in config:", err)
+			return
+		}
+		for _, v := range m.Records {
+			rr, err := dns.NewRR(v)
+			if err != nil {
+				fmt.Println("Invalid DNS record:", v)
+				continue
+			}
+			zoneConfig[m.Domain] = append(zoneConfig[m.Domain], rr)
+		}
+	}
+	fmt.Println("Config loaded:", zoneConfigPath)
 }
-
 
 func lookup(domain string) (net.IP, error) {
 	name := strings.ToUpper(domain) + "======"
@@ -50,15 +76,25 @@ func lookup(domain string) (net.IP, error) {
 	return ipAddr, nil
 }
 
+func genConf(target string) (string, error) {
+	ip := net.ParseIP(target)
+	if ip == nil {
+		return "", errors.New("Invalid IP address")
+	}
+	zone := strings.ToLower(base32.StdEncoding.EncodeToString(ip)[0:26])
+	selfRecord := fmt.Sprintf("\t\t\"%s.%s AAAA %s\"\n", zone, domainZone, target)
+	confString := fmt.Sprintf("{\n\t\"Domain\":\"%s\",\n\t\"Records\":[\n%s\t]\n}", zone, selfRecord)
+
+	return confString, nil
+}
+
 func handleRequest(w dns.ResponseWriter, r *dns.Msg) {
+	var remoteLookups = map[string][]dns.Question{}
 	m := new(dns.Msg)
 	m.SetReply(r)
 
-	for _, v := range r.Question {
-		if v.Qclass != dns.ClassINET {
-			continue
-		}
-		labels := dns.SplitDomainName(v.Name)
+	for _, q := range r.Question {
+		labels := dns.SplitDomainName(q.Name)
 		if len(labels) < 3 {
 			continue
 		}
@@ -68,48 +104,72 @@ func handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		if err != nil {
 			continue
 		}
-		if v.Qtype == dns.TypeAAAA {
-			r := new(dns.AAAA)
-			r.Hdr = dns.RR_Header{Name: v.Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: maxTtl}
-			r.AAAA = resolvedAddr
-			m.Answer = append(m.Answer, r)
-		} else if v.Qtype == dns.TypeSRV {
-			if len(labels) < 5 {
-				continue
+		if records, ok := zoneConfig[subDomain]; ok {
+			for _, rec := range records {
+				if h := rec.Header(); h.Name == q.Name && h.Rrtype == q.Qtype && h.Class == q.Qclass {
+					m.Answer = append(m.Answer, rec)
+				}
 			}
-
-			if srvRec := labels[0] + "." + labels[1]; srvPortMap[srvRec] != 0 {
-				r := new(dns.SRV)
-				r.Hdr = dns.RR_Header{Name: v.Name, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: maxTtl}
-				r.Priority = 0
-				r.Weight = 0
-				r.Port = srvPortMap[srvRec]
-				r.Target = subDomain + "." + domainZone
-				m.Answer = append(m.Answer, r)
-			}
+		} else if ra := w.RemoteAddr().String(); strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:") {
+			 // do remote lookups only for local clients
+			remoteLookups[resolvedAddr.String()] = append(remoteLookups[resolvedAddr.String()], q)
 		}
 	}
 
+	for remoteServer, questions := range remoteLookups {
+		rm := new(dns.Msg)
+		rm.Question = questions
+		resp, _, err := dnsClient.Exchange(rm, "["+remoteServer+"]:53") // no retries
+		if err != nil {
+			continue
+		}
+		m.Answer = append(m.Answer, resp.Answer...)
+	}
 	w.WriteMsg(m)
 }
 
 func main() {
-	addr := "127.0.0.1:53535"
-	if os.Getenv("LISTEN_ADDR") != "" {
-		addr = os.Getenv("LISTEN_ADDR")
+	helpMessage := "Usage:\nmeshnamed genconf [IP] > /etc/meshnamed.conf\nmeshnamed daemon /etc/meshnamed.conf"
+	if len(os.Args) < 2 {
+		fmt.Println(helpMessage)
+		return
 	}
 
-	if os.Getenv("MESH_SUBNET") != "" {
-		_, meshSubnet, err := net.ParseCIDR(os.Getenv("MESH_SUBNET"))
+	action := os.Args[1]
+	if action == "genconf" && len(os.Args) == 3 {
+		confString, err := genConf(os.Args[2])
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(1)
+		} else {
+			fmt.Println(confString)
 		}
-		validSubnet = meshSubnet
-	}
+	} else if action == "daemon" {
+		if len(os.Args) == 3 {
+			zoneConfigPath = os.Args[2]
+			loadConfig()
+		}
 
-	server := &dns.Server{Addr: addr, Net: "udp"}
-	fmt.Println("Started meshnamed on:", addr)
-	dns.HandleFunc(domainZone, handleRequest)
-	server.ListenAndServe()
+		addr := "[::1]:53535"
+		if os.Getenv("LISTEN_ADDR") != "" {
+			addr = os.Getenv("LISTEN_ADDR")
+		}
+
+		if os.Getenv("MESH_SUBNET") != "" {
+			_, meshSubnet, err := net.ParseCIDR(os.Getenv("MESH_SUBNET"))
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			validSubnet = meshSubnet
+		}
+
+		dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
+
+		dnsServer := &dns.Server{Addr: addr, Net: "udp"}
+		fmt.Println("Started meshnamed on:", addr)
+		dns.HandleFunc(domainZone, handleRequest)
+		dnsServer.ListenAndServe()
+	} else {
+		fmt.Println(helpMessage)
+	}
 }

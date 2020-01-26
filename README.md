@@ -10,8 +10,8 @@ domain names for server to server communications.
 
 Self-organized and trustless networks like CJDNS and Yggdrasil Network are 
 using public-key cryptography for IP address allocation. Every network node owns 
-a globally unique IPv6 address, and 16 bytes of that address can be 
-translated to a globally unique domain name.
+a globally unique IPv6 address. Binary form of that address can be encoded with 
+base32 notation for deriving a globally unique name space managed by that node.
 
 Since there is no need for a global authority or consensus, such a naming system 
 will reliably work in any network split scenarios.
@@ -19,37 +19,40 @@ will reliably work in any network split scenarios.
 ".mesh.arpa" is ment to be used by machines, not by humans. A human-readable 
 naming system would require a lot more engineering effort. 
 
-## How to resolve .mesh.arpa domains 
+## How .mesh.arpa domains work
 
-Every third level domain in ".mesh.arpa" space represents a single IPv6 address.
+Each mesh node can manage its own unique name space in "mesh.arpa." zone. 
+The name space is derived from its IPv6 address as follows:
 
-Domain "aicrxoqgun7siwm42akzfsox7m.mesh.arpa" is resolved as follows:
+1) IPv6 address is converted to its binary form of 16 bytes:
 
-1) Append base32 padding "======" to the upper cased third level domain token;
+    IPv6Address('200:6fc8:9220:f400:5cc2:305a:4ac6:967e')
 
-    AICRXOQGUN7SIWM42AKZFSOX7M======
+    b'\x02\x00o\xc8\x92 \xf4\x00\\\xc20ZJ\xc6\x96~'
 
-2) Decode base32 string to a binary IPv6 representation;
+2) The binary value is encoded to base32:
 
-    b'\x02\x05\x1b\xba\x06\xa3\x7f$Y\x9c\xd0\x15\x92\xc9\xd7\xfb'
+    AIAG7SESED2AAXGCGBNEVRUWPY======
 
-3) Convert the resulting 16 bytes to a IPv6 address structure.
+3) Padding symbols "======" are removed from the end of the string.
 
-    IPv6Address('205:1bba:6a3:7f24:599c:d015:92c9:d7fb')
+The resulting name space managed by '200:6fc8:9220:f400:5cc2:305a:4ac6:967e'
+is "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa."
 
-If the server cannot translate a given domain name to IP address it should 
-return empty response. 
+In order to resolve a domain in "xxx.mesh.arpa." space, the client derives IPv6 
+address from the third level domain "xxx" and use it as authoritative DNS server
+for that zone.
 
-Every additional subdomain, e.g. "mail.xxx.mesh.arpa, xmpp.xxx.mesh.arpa" 
-resolves to the same IPv6 address as "xxx.mesh.arpa".
+"xxx.mesh.arpa" name is itself managed by the DNS server derived from "xxx" and 
+can point to any other IPv6 address.
 
 ## Why not .ip6.arpa
 
 There is a special domain for reverse DNS lookups, but it takes 72 characters to
 store a single value. The same value in .mesh.arpa takes 36 characters.
 
-"7.c.4.9.0.d.8.f.8.d.2.a.6.4.6.7.8.e.2.d.4.b.1.a.d.4.7.8.0.0.2.0.ip6.arpa" 
-versus "aicrxoqgun7siwm42akzfsox7m.mesh.arpa"
+"e.7.6.9.6.c.a.4.a.5.0.3.2.c.c.5.0.0.4.f.0.2.2.9.8.c.f.6.0.0.2.0.ip6.arpa" 
+versus "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa."
 
 This saves twice amount of bandwidth and storage space. It is also arguably more 
 aesthetically appealing, even though that's not a goal.

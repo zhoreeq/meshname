@@ -9,9 +9,9 @@ Group=nogroup
 ProtectHome=true
 ProtectSystem=true
 SyslogIdentifier=meshnamed
-Environment="LISTEN_ADDR=127.0.0.1:53535"
+Environment="LISTEN_ADDR=[::1]:53535"
 Environment="MESH_SUBNET=::/0"
-ExecStart=/usr/local/bin/meshnamed
+ExecStart=/usr/local/bin/meshnamed daemon /etc/meshnamed.conf
 Restart=always
 TimeoutStopSec=5
 
