@@ -46,6 +46,24 @@ for that zone.
 "xxx.mesh.arpa" name is itself managed by the DNS server derived from "xxx" and 
 can point to any other IPv6 address.
 
+## Resolving process explained
+
+1) A client application makes a request to a resolver.
+I.e. request AAAA record for "test.aiag7sesed2aaxgcgbnevruwpy.mesh.arpa.".
+
+2) When a resolver detects "mesh.arpa." domain, it extracts a third level 
+domain from it. In this example, "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa.".
+
+3) If the resolver is configured as an authoritative server for that 
+domain, it sends back a response as a regular DNS server would do.
+
+4) If it's not, the resolver derives IPv6 address of the corresponding 
+authoritative DNS server from the third level domain.
+For "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa." the authoritative server is 
+"200:6fc8:9220:f400:5cc2:305a:4ac6:967e".
+The resolver then relays clients request to a derived server address and 
+relays a response back to the client.
+
 ## Why not .ip6.arpa
 
 There is a special domain for reverse DNS lookups, but it takes 72 characters to
