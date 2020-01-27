@@ -8,15 +8,15 @@ Having a naming system is a common requirement for deploying preexisting
 decentralized applications. Protocols like e-mail, XMPP and ActivityPub require 
 domain names for server to server communications.
 
-Self-organized and trustless networks like CJDNS and Yggdrasil Network are 
-using public-key cryptography for IP address allocation. Every network node owns 
+Self-organized networks like CJDNS and Yggdrasil Network use public-key 
+cryptography for IP address allocation. Every network node owns 
 a globally unique IPv6 address. Binary form of that address can be encoded with 
 base32 notation for deriving a globally unique name space managed by that node.
 
 Since there is no need for a global authority or consensus, such a naming system 
 will reliably work in any network split scenarios.
 
-".mesh.arpa" is ment to be used by machines, not by humans. A human-readable 
+".mesh.arpa" is meant to be used by machines, not by humans. A human-readable 
 naming system would require a lot more engineering effort. 
 
 ## How .mesh.arpa domains work
