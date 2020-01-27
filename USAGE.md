@@ -3,24 +3,24 @@
 Minimum go version 1.12 is required.
 
 1) Get the source code and compile
-
-    git clone https://github.com/zhoreeq/meshname.git
-    cd meshname
-    make
-
+```
+git clone https://github.com/zhoreeq/meshname.git
+cd meshname
+make
+```
 2) Generate the default config for your host
-
-    ./meshnamed genconf 200:6fc8:9220:f400:5cc2:305a:4ac6:967e | tee /tmp/meshnamed.conf
-
+```
+./meshnamed genconf 200:6fc8:9220:f400:5cc2:305a:4ac6:967e | tee /tmp/meshnamed.conf
+```
 3) Optionally, set the configuration with environment variables
-
-    export LISTEN_ADDR=[::1]:53535
-    export MESH_SUBNET=200::/7
-
+```
+export LISTEN_ADDR=[::1]:53535
+export MESH_SUBNET=200::/7
+```
 4) Run the daemon
-
-    ./meshnamed daemon /tmp/meshnamed.conf
-
+```
+./meshnamed daemon /tmp/meshnamed.conf
+```
 Add new DNS records to configuration file and restart the daemon to apply settings.
 A record can be of any valid string form parsed by [miekg/dns](https://godoc.org/github.com/miekg/dns#NewRR).
 
