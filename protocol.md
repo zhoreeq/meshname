@@ -16,12 +16,12 @@ base32 notation for deriving a globally unique name space managed by that node.
 Since there is no need for a global authority or consensus, such a naming system 
 will reliably work in any network split scenarios.
 
-".mesh.arpa" is meant to be used by machines, not by humans. A human-readable 
+".meshname" is meant to be used by machines, not by humans. A human-readable 
 naming system would require a lot more engineering effort. 
 
-## How .mesh.arpa domains work
+## How .meshname domains work
 
-Each mesh node can manage its own unique name space in "mesh.arpa." zone. 
+Each mesh node can manage its own unique name space in "meshname." zone. 
 The name space is derived from its IPv6 address as follows:
 
 1) IPv6 address is converted to its binary form of 16 bytes:
@@ -37,29 +37,29 @@ The name space is derived from its IPv6 address as follows:
 3) Padding symbols "======" are removed from the end of the string.
 
 The resulting name space managed by '200:6fc8:9220:f400:5cc2:305a:4ac6:967e'
-is "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa."
+is "aiag7sesed2aaxgcgbnevruwpy.meshname."
 
-In order to resolve a domain in "xxx.mesh.arpa." space, the client derives IPv6 
-address from the third level domain "xxx" and use it as authoritative DNS server
+In order to resolve a domain in "xxx.meshname." space, the client derives IPv6 
+address from the second level domain "xxx" and use it as authoritative DNS server
 for that zone.
 
-"xxx.mesh.arpa" name is itself managed by the DNS server derived from "xxx" and 
+"xxx.meshname" name is itself managed by the DNS server derived from "xxx" and 
 can point to any other IPv6 address.
 
 ## Resolving process explained
 
 1) A client application makes a request to a resolver.
-I.e. request AAAA record for "test.aiag7sesed2aaxgcgbnevruwpy.mesh.arpa.".
+I.e. request AAAA record for "test.aiag7sesed2aaxgcgbnevruwpy.meshname.".
 
-2) When a resolver detects "mesh.arpa." domain, it extracts a third level 
-domain from it. In this example, "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa.".
+2) When a resolver detects "meshname." domain, it extracts the second level 
+domain from it. In this example, "aiag7sesed2aaxgcgbnevruwpy.meshname.".
 
 3) If the resolver is configured as an authoritative server for that 
 domain, it sends back a response as a regular DNS server would do.
 
 4) If it's not, the resolver derives IPv6 address of the corresponding 
-authoritative DNS server from the third level domain.
-For "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa." the authoritative server is 
+authoritative DNS server from the second level domain.
+For "aiag7sesed2aaxgcgbnevruwpy.meshname." the authoritative server is 
 "200:6fc8:9220:f400:5cc2:305a:4ac6:967e".
 The resolver then relays clients request to a derived server address and 
 relays a response back to the client.
@@ -67,17 +67,10 @@ relays a response back to the client.
 ## Why not .ip6.arpa
 
 There is a special domain for reverse DNS lookups, but it takes 72 characters to
-store a single value. The same value in .mesh.arpa takes 36 characters.
+store a single value. The same value in .meshname takes 35 characters.
 
 "e.7.6.9.6.c.a.4.a.5.0.3.2.c.c.5.0.0.4.f.0.2.2.9.8.c.f.6.0.0.2.0.ip6.arpa" 
-versus "aiag7sesed2aaxgcgbnevruwpy.mesh.arpa."
+versus "aiag7sesed2aaxgcgbnevruwpy.meshname"
 
 This saves twice amount of bandwidth and storage space. It is also arguably more 
 aesthetically appealing, even though that's not a goal.
-
-## Why .arpa
-
-".arpa" is a special domain reserved for Internet infrastructure. There is a 
-similar special-use domain for home networks ".home.arpa" specified in RFC 8375. 
-If ".mesh.arpa" will become widely used it could also be standardized, otherwise 
-it won't break much.

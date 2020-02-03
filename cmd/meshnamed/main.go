@@ -13,7 +13,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-const domainZone = "mesh.arpa."
+const domainZone = "meshname."
 
 var _, validSubnet, _ = net.ParseCIDR("::/0")
 var zoneConfigPath = ""

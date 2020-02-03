@@ -9,7 +9,7 @@ import (
 	"errors"
 )
 
-var domainZone = ".mesh.arpa"
+var domainZone = ".meshname"
 
 func reverse_lookup(target string) (string, error) {
 	ip := net.ParseIP(target)
