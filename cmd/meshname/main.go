@@ -22,10 +22,10 @@ func reverse_lookup(target string) (string, error) {
 
 func lookup(target string)  (string, error) {
 	labels := strings.Split(target, ".")
-	if len(labels) < 3 || strings.HasSuffix(domainZone, target) {
+	if len(labels) < 2 || strings.HasSuffix(domainZone, target) {
 		return "", errors.New("Invalid domain")
 	}
-	subDomain := labels[len(labels) - 3]
+	subDomain := labels[len(labels) - 2]
 	if len(subDomain) != 26 {
 		return "", errors.New("Invalid subdomain length")
 	}

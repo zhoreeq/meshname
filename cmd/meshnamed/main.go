@@ -95,10 +95,10 @@ func handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 	for _, q := range r.Question {
 		labels := dns.SplitDomainName(q.Name)
-		if len(labels) < 3 {
+		if len(labels) < 2 {
 			continue
 		}
-		subDomain := labels[len(labels)-3]
+		subDomain := labels[len(labels)-2]
 
 		resolvedAddr, err := lookup(subDomain)
 		if err != nil {
