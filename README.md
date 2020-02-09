@@ -10,16 +10,15 @@ make
 ```
 2) Generate the default config for your host
 ```
-./meshnamed genconf 200:6fc8:9220:f400:5cc2:305a:4ac6:967e | tee /tmp/meshnamed.conf
+./meshnamed -genconf 200:6fc8:9220:f400:5cc2:305a:4ac6:967e | tee /tmp/meshnamed.conf
 ```
-3) Optionally, set the configuration with environment variables
+3) Run the daemon
 ```
-export LISTEN_ADDR=[::1]:53535
-export MESH_SUBNET=200::/7
+./meshnamed -useconffile /tmp/meshnamed.conf
 ```
-4) Run the daemon
+4) Optionally, set the configuration flags
 ```
-./meshnamed daemon /tmp/meshnamed.conf
+./meshnamed -listenaddr [::1]:53535 -meshsubnet 200::/7 -debug -useconffile /tmp/meshnamed.conf
 ```
 Add new DNS records to configuration file and restart the daemon to apply settings.
 A record can be of any valid string form parsed by [miekg/dns](https://godoc.org/github.com/miekg/dns#NewRR).
@@ -61,9 +60,9 @@ In this example, meshnamed is configured as authoritative for two domain zones:
 
 ## Using meshnamed as a standalone DNS server
 
-Set environment varialbe to listen on all interfaces and a standard DNS server port
+Set the flag to listen on all interfaces and a standard DNS server port
 
-    export LISTEN_ADDR=[::]:53
+    ./meshnamed -listenaddr [::]:53 -useconffile /tmp/meshnamed.conf
 
-Allow incoming connections to port 53/UDP in firewall settings.
+Run as root and allow incoming connections to port 53/UDP in firewall settings.
 

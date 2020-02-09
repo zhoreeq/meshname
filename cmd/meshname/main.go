@@ -1,47 +1,17 @@
 package main
 
 import (
-	"encoding/base32"
 	"fmt"
 	"net"
 	"strings"
 	"os"
-	"errors"
+
+	"github.com/zhoreeq/meshname/src/meshname"
 )
 
-var domainZone = ".meshname"
-
-func reverse_lookup(target string) (string, error) {
-	ip := net.ParseIP(target)
-	if ip == nil {
-		return "", errors.New("Invalid IP address")
-	}
-	str := base32.StdEncoding.EncodeToString(ip)[0:26]
-	return strings.ToLower(str) + domainZone, nil
-}
-
-func lookup(target string)  (string, error) {
-	labels := strings.Split(target, ".")
-	if len(labels) < 2 || strings.HasSuffix(domainZone, target) {
-		return "", errors.New("Invalid domain")
-	}
-	subDomain := labels[len(labels) - 2]
-	if len(subDomain) != 26 {
-		return "", errors.New("Invalid subdomain length")
-	}
-	name := strings.ToUpper(subDomain) + "======"
-	data, err := base32.StdEncoding.DecodeString(name)
-	if err != nil {
-		return "", err
-	}
-	s := net.IP(data)
-	if s == nil {
-		return "", errors.New("Invalid IP address")
-	}
-	return s.String(), nil
-}
-
 func main() {
+	domainZone := strings.TrimSuffix(meshname.DomainZone, ".")
+
 	usage := "Usage:\n\nmeshname lookup DOMAIN\nmeshname reverse_lookup IP"
 	if len(os.Args) != 3 {
 		fmt.Println(usage)
@@ -53,20 +23,32 @@ func main() {
 
 	switch action {
 	case "lookup":
-		result, err := lookup(target)
+		labels := strings.Split(target, ".")
+		if len(labels) < 2 || !strings.HasSuffix(target, domainZone) {
+			fmt.Println("Invalid domain")
+			return
+		}
+		subDomain := labels[len(labels) - 2]
+		if len(subDomain) != 26 {
+			fmt.Println("Invalid subdomain length")
+			return
+		}
+
+		result, err := meshname.IPFromDomain(subDomain)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
-		fmt.Println(result)
+		fmt.Println(result.String())
 		return
 	case "reverse_lookup":
-		result, err := reverse_lookup(target)
-		if err != nil {
-			fmt.Println("Error:", err)
+		ip := net.ParseIP(target)
+		if ip == nil {
+			fmt.Println("Invalid IP address")
 			return
 		}
-		fmt.Println(result)
+		result := meshname.DomainFromIP(ip)
+		fmt.Println(result + "." + domainZone)
 		return
 	default:
 		fmt.Println(usage)
