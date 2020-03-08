@@ -49,24 +49,19 @@ func GenConf(target string) (string, error) {
 }
 
 type MeshnameServer struct {
-	validSubnet *net.IPNet
-	log *log.Logger
+	validSubnet                *net.IPNet
+	log                        *log.Logger
 	listenAddr, zoneConfigPath string
-	zoneConfig map[string][]dns.RR
-	dnsClient *dns.Client
+	zoneConfig                 map[string][]dns.RR
+	dnsClient                  *dns.Client
+	dnsServer                  *dns.Server
 }
 
-type MeshnameOptions struct {
-	ListenAddr, ConfigPath string
-	ValidSubnet *net.IPNet
-}
-
-func (s *MeshnameServer) Init(log *log.Logger, options interface{}) {
-	mnoptions := options.(MeshnameOptions)
+func (s *MeshnameServer) Init(log *log.Logger, listenAddr string, zoneConfigPath string, validSubnet *net.IPNet) {
 	s.log = log
-	s.listenAddr = mnoptions.ListenAddr
-	s.validSubnet = mnoptions.ValidSubnet
-	s.zoneConfigPath = mnoptions.ConfigPath
+	s.listenAddr = listenAddr
+	s.validSubnet = validSubnet
+	s.zoneConfigPath = zoneConfigPath
 	s.zoneConfig = make(map[string][]dns.RR)
 	if s.dnsClient == nil {
 		s.dnsClient = new(dns.Client)
@@ -115,11 +110,19 @@ func (s *MeshnameServer) LoadConfig() {
 	s.log.Infoln("Meshname config loaded:", s.zoneConfigPath)
 }
 
-func (s *MeshnameServer) Start() {
-	dnsServer := &dns.Server{Addr: s.listenAddr, Net: "udp"}
-	s.log.Infoln("Started meshnamed on:", s.listenAddr)
+func (s *MeshnameServer) Stop() error {
+	if s.dnsServer != nil {
+		s.dnsServer.Shutdown()
+	}
+	return nil
+}
+
+func (s *MeshnameServer) Start() error {
+	s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
 	dns.HandleFunc(DomainZone, s.handleRequest)
-	dnsServer.ListenAndServe()
+	go s.dnsServer.ListenAndServe()
+	s.log.Infoln("Started meshnamed on:", s.listenAddr)
+	return nil
 }
 
 func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -135,24 +138,23 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		subDomain := labels[len(labels)-2]
 
-		resolvedAddr, err := IPFromDomain(subDomain)
-		if err != nil {
-			s.log.Debugln(err)
-			continue
-		}
-		if !s.validSubnet.Contains(resolvedAddr) {
-			s.log.Debugln("Error: subnet doesn't match")
-			continue
-		}
 		if records, ok := s.zoneConfig[subDomain]; ok {
 			for _, rec := range records {
 				if h := rec.Header(); h.Name == q.Name && h.Rrtype == q.Qtype && h.Class == q.Qclass {
 					m.Answer = append(m.Answer, rec)
 				}
 			}
-		} else if ra := w.RemoteAddr().String(); strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:") {
-			// TODO prefix whitelists ?
+		} else if s.isRemoteLookupAllowed(w.RemoteAddr()) {
 			// do remote lookups only for local clients
+			resolvedAddr, err := IPFromDomain(subDomain)
+			if err != nil {
+				s.log.Debugln(err)
+				continue
+			}
+			if !s.validSubnet.Contains(resolvedAddr) {
+				s.log.Debugln("Error: subnet doesn't match")
+				continue
+			}
 			remoteLookups[resolvedAddr.String()] = append(remoteLookups[resolvedAddr.String()], q)
 		}
 	}
@@ -170,3 +172,15 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(m)
 }
 
+func (s *MeshnameServer) isRemoteLookupAllowed(addr net.Addr) bool {
+	// TODO prefix whitelists ?
+	ra := addr.String()
+	return strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:")
+}
+
+func (s *MeshnameServer) UpdateConfig() error {
+	s.Stop()
+	s.LoadConfig()
+	s.Start()
+	return nil
+}

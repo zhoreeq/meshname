@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"net"
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/zhoreeq/meshname/src/meshname"
 )
@@ -28,7 +28,7 @@ func main() {
 			fmt.Println("Invalid domain")
 			return
 		}
-		subDomain := labels[len(labels) - 2]
+		subDomain := labels[len(labels)-2]
 		if len(subDomain) != 26 {
 			fmt.Println("Invalid subdomain length")
 			return

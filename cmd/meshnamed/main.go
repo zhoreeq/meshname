@@ -3,8 +3,10 @@ package main
 import (
 	"net"
 	"os"
+	"os/signal"
 	"fmt"
 	"flag"
+	"syscall"
 
 	"github.com/gologme/log"
 
@@ -47,9 +49,24 @@ func main() {
 			os.Exit(1)
 		}
 
-		s.Init(logger, meshname.MeshnameOptions{ListenAddr: *listenAddr, ConfigPath: *useconffile, ValidSubnet: validSubnet})
+		s.Init(logger, *listenAddr, *useconffile, validSubnet)
 		s.Start()
+
+		c := make(chan os.Signal, 1)
+		r := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		signal.Notify(r, os.Interrupt, syscall.SIGHUP)
+		defer s.Stop()
+		for {
+			select {
+			case _ = <-c:
+				goto exit
+			case _ = <-r:
+				s.UpdateConfig()
+			}
+		}
 	default:
 		flag.PrintDefaults()
 	}
+exit:
 }
