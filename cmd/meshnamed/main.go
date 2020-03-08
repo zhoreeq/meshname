@@ -1,11 +1,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
-	"fmt"
-	"flag"
 	"syscall"
 
 	"github.com/gologme/log"
@@ -13,9 +13,9 @@ import (
 	"github.com/zhoreeq/meshname/src/meshname"
 )
 
-
 func main() {
 	genconf := flag.String("genconf", "", "generate a new config for IP address")
+	subdomain := flag.String("subdomain", "meshname.", "subdomain used to generate config")
 	useconffile := flag.String("useconffile", "", "run daemon with a config file")
 	listenAddr := flag.String("listenaddr", "[::1]:53535", "address to listen on")
 	meshSubnetStr := flag.String("meshsubnet", "::/0", "valid IPv6 address space")
@@ -34,7 +34,7 @@ func main() {
 
 	switch {
 	case *genconf != "":
-		confString, err := meshname.GenConf(*genconf)
+		confString, err := meshname.GenConf(*genconf, *subdomain)
 		if err != nil {
 			logger.Errorln(err)
 		} else {

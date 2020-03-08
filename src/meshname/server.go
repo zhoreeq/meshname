@@ -14,7 +14,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-const DomainZone = "meshname."
+var DomainZones = []string{"meshname.", "ygg.", "cjd."}
 
 func DomainFromIP(target net.IP) string {
 	return strings.ToLower(base32.StdEncoding.EncodeToString(target)[0:26])
@@ -36,14 +36,14 @@ func IPFromDomain(domain string) (net.IP, error) {
 	return ipAddr, nil
 }
 
-func GenConf(target string) (string, error) {
+func GenConf(target, zone string) (string, error) {
 	ip := net.ParseIP(target)
 	if ip == nil {
 		return "", errors.New("Invalid IP address")
 	}
-	zone := DomainFromIP(ip)
-	selfRecord := fmt.Sprintf("\t\t\"%s.%s AAAA %s\"\n", zone, DomainZone, target)
-	confString := fmt.Sprintf("{\n\t\"Domain\":\"%s\",\n\t\"Records\":[\n%s\t]\n}", zone, selfRecord)
+	subDomain := DomainFromIP(ip)
+	selfRecord := fmt.Sprintf("\t\t\"%s.%s AAAA %s\"\n", subDomain, zone, target)
+	confString := fmt.Sprintf("{\n\t\"Domain\":\"%s\",\n\t\"Records\":[\n%s\t]\n}", subDomain, selfRecord)
 
 	return confString, nil
 }
@@ -119,7 +119,9 @@ func (s *MeshnameServer) Stop() error {
 
 func (s *MeshnameServer) Start() error {
 	s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
-	dns.HandleFunc(DomainZone, s.handleRequest)
+	for _, domain := range DomainZones {
+		dns.HandleFunc(domain, s.handleRequest)
+	}
 	go s.dnsServer.ListenAndServe()
 	s.log.Infoln("Started meshnamed on:", s.listenAddr)
 	return nil
