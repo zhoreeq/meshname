@@ -32,41 +32,38 @@ func main() {
 		logger.EnableLevel("debug")
 	}
 
-	switch {
-	case *genconf != "":
+	if *genconf != "" {
 		confString, err := meshname.GenConf(*genconf, *subdomain)
 		if err != nil {
 			logger.Errorln(err)
 		} else {
 			fmt.Println(confString)
 		}
-	case *useconffile != "":
-		s := new(meshname.MeshnameServer)
-
-		_, validSubnet, err := net.ParseCIDR(*meshSubnetStr)
-		if err != nil {
-			logger.Errorln(err)
-			os.Exit(1)
-		}
-
-		s.Init(logger, *listenAddr, *useconffile, validSubnet)
-		s.Start()
-
-		c := make(chan os.Signal, 1)
-		r := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		signal.Notify(r, os.Interrupt, syscall.SIGHUP)
-		defer s.Stop()
-		for {
-			select {
-			case _ = <-c:
-				goto exit
-			case _ = <-r:
-				s.UpdateConfig()
-			}
-		}
-	default:
-		flag.PrintDefaults()
+		return
 	}
-exit:
+
+	s := new(meshname.MeshnameServer)
+
+	_, validSubnet, err := net.ParseCIDR(*meshSubnetStr)
+	if err != nil {
+		logger.Errorln(err)
+		os.Exit(1)
+	}
+
+	s.Init(logger, *listenAddr, *useconffile, validSubnet)
+	s.Start()
+
+	c := make(chan os.Signal, 1)
+	r := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(r, os.Interrupt, syscall.SIGHUP)
+	defer s.Stop()
+	for {
+		select {
+		case _ = <-c:
+			return
+		case _ = <-r:
+			s.UpdateConfig()
+		}
+	}
 }
