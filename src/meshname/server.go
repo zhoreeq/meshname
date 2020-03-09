@@ -16,12 +16,12 @@ import (
 
 var DomainZones = []string{"meshname.", "ygg.", "cjd."}
 
-func DomainFromIP(target net.IP) string {
-	return strings.ToLower(base32.StdEncoding.EncodeToString(target)[0:26])
+func DomainFromIP(target *net.IP) string {
+	return strings.ToLower(base32.StdEncoding.EncodeToString(*target)[0:26])
 }
 
-func IPFromDomain(domain string) (net.IP, error) {
-	name := strings.ToUpper(domain) + "======"
+func IPFromDomain(domain *string) (net.IP, error) {
+	name := strings.ToUpper(*domain) + "======"
 	data, err := base32.StdEncoding.DecodeString(name)
 	if err != nil {
 		return net.IP{}, err
@@ -41,7 +41,7 @@ func GenConf(target, zone string) (string, error) {
 	if ip == nil {
 		return "", errors.New("Invalid IP address")
 	}
-	subDomain := DomainFromIP(ip)
+	subDomain := DomainFromIP(&ip)
 	selfRecord := fmt.Sprintf("\t\t\"%s.%s AAAA %s\"\n", subDomain, zone, target)
 	confString := fmt.Sprintf("{\n\t\"Domain\":\"%s\",\n\t\"Records\":[\n%s\t]\n}", subDomain, selfRecord)
 
@@ -148,7 +148,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			}
 		} else if s.isRemoteLookupAllowed(w.RemoteAddr()) {
 			// do remote lookups only for local clients
-			resolvedAddr, err := IPFromDomain(subDomain)
+			resolvedAddr, err := IPFromDomain(&subDomain)
 			if err != nil {
 				s.log.Debugln(err)
 				continue
