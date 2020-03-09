@@ -1,5 +1,8 @@
 # meshname
 
+Special-use naming system for self-organized IPv6 mesh networks. 
+Implements [Meshname protocol](https://github.com/zhoreeq/meshname/blob/master/protocol.md).
+
 Minimum go version 1.12 is required.
 
 1) Get the source code and compile
@@ -70,3 +73,6 @@ Run as root and allow incoming connections to port 53/UDP in firewall settings.
 
 Just as `.meshname` config file can contain `.ygg` and `.cjd` DNS records
 
+## See also
+
+[YggNS](https://github.com/russian-meshnet/YggNS/blob/master/README.md)
