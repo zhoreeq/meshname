@@ -10,13 +10,13 @@ make
 ```
 2) Generate the default config for your host
 ```
-./meshnamed -genconf 200:6fc8:9220:f400:5cc2:305a:4ac6:967e | tee /tmp/meshnamed.conf
+./meshnamed -genconf 200:6fc8:9220:f400:5cc2:305a:4ac6:967e -subdomain meshname | tee /tmp/meshnamed.conf
 ```
 3) Run the daemon
 ```
 ./meshnamed -useconffile /tmp/meshnamed.conf
 ```
-4) Optionally, set the configuration flags
+4) Optionally, set configuration flags
 ```
 ./meshnamed -listenaddr [::1]:53535 -meshsubnet 200::/7 -debug -useconffile /tmp/meshnamed.conf
 ```
@@ -65,4 +65,8 @@ Set the flag to listen on all interfaces and a standard DNS server port
     ./meshnamed -listenaddr [::]:53 -useconffile /tmp/meshnamed.conf
 
 Run as root and allow incoming connections to port 53/UDP in firewall settings.
+
+## .ygg and .cjd domains
+
+Just as `.meshname` config file can contain `.ygg` and `.cjd` DNS records
 
