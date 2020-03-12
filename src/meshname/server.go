@@ -49,18 +49,18 @@ func GenConf(target, zone string) (string, error) {
 }
 
 type MeshnameServer struct {
-	validSubnet                *net.IPNet
 	log                        *log.Logger
 	listenAddr, zoneConfigPath string
 	zoneConfig                 map[string][]dns.RR
 	dnsClient                  *dns.Client
 	dnsServer                  *dns.Server
+	networks                   map[string]*net.IPNet
 }
 
-func (s *MeshnameServer) Init(log *log.Logger, listenAddr string, zoneConfigPath string, validSubnet *net.IPNet) {
+func (s *MeshnameServer) Init(log *log.Logger, listenAddr string, zoneConfigPath string, networks map[string]*net.IPNet) {
 	s.log = log
 	s.listenAddr = listenAddr
-	s.validSubnet = validSubnet
+	s.networks = networks
 	s.zoneConfigPath = zoneConfigPath
 	s.zoneConfig = make(map[string][]dns.RR)
 	if s.dnsClient == nil {
@@ -119,8 +119,9 @@ func (s *MeshnameServer) Stop() error {
 
 func (s *MeshnameServer) Start() error {
 	s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
-	for _, domain := range DomainZones {
+	for domain := range s.networks {
 		dns.HandleFunc(domain, s.handleRequest)
+		s.log.Debugln("Handling:", domain)
 	}
 	go s.dnsServer.ListenAndServe()
 	s.log.Infoln("Started meshnamed on:", s.listenAddr)
@@ -153,11 +154,14 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 				s.log.Debugln(err)
 				continue
 			}
-			if !s.validSubnet.Contains(resolvedAddr) {
+			// check subnet validity
+			tld := labels[len(labels)-1]
+
+			if subnet, ok := s.networks[tld]; ok && subnet.Contains(resolvedAddr) {
+				remoteLookups[resolvedAddr.String()] = append(remoteLookups[resolvedAddr.String()], q)
+			} else {
 				s.log.Debugln("Error: subnet doesn't match")
-				continue
 			}
-			remoteLookups[resolvedAddr.String()] = append(remoteLookups[resolvedAddr.String()], q)
 		}
 	}
 

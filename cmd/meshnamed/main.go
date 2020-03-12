@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"os/signal"
 	"syscall"
 
@@ -18,7 +19,7 @@ func main() {
 	subdomain := flag.String("subdomain", "meshname.", "subdomain used to generate config")
 	useconffile := flag.String("useconffile", "", "run daemon with a config file")
 	listenAddr := flag.String("listenaddr", "[::1]:53535", "address to listen on")
-	meshSubnetStr := flag.String("meshsubnet", "::/0", "valid IPv6 address space")
+	networksconf := flag.String("networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
 	debug := flag.Bool("debug", false, "enable debug logging")
 	flag.Parse()
 
@@ -42,15 +43,21 @@ func main() {
 		return
 	}
 
-	s := new(meshname.MeshnameServer)
+	networks := make(map[string]*net.IPNet)
+	for _, item := range strings.Split(*networksconf, ",") {
+		tokens := strings.SplitN(item, "=", 2)
+		domain, subnet := tokens[0], tokens[1]
 
-	_, validSubnet, err := net.ParseCIDR(*meshSubnetStr)
-	if err != nil {
-		logger.Errorln(err)
-		os.Exit(1)
+		_, validSubnet, err := net.ParseCIDR(subnet)
+		if err != nil {
+			logger.Errorln(err)
+			os.Exit(1)
+		}
+		networks[domain] = validSubnet
 	}
 
-	s.Init(logger, *listenAddr, *useconffile, validSubnet)
+	s := new(meshname.MeshnameServer)
+	s.Init(logger, *listenAddr, *useconffile, networks)
 	s.Start()
 
 	c := make(chan os.Signal, 1)
