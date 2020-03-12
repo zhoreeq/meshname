@@ -75,7 +75,7 @@ Run as root and allow incoming connections to port 53/UDP in firewall settings.
 
 ## Custom top level domains (TLD) and subnet filtering
 
-TLD meshnamed can be configured to resolve custom TLDs.
+meshnamed can be configured to resolve custom TLDs.
 To run meshnamed for TLD `.newmesh` with addresses in `fd00::/8` 
 set a flag `-networks newmesh=fd00::/8`.
 
