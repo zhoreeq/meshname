@@ -21,7 +21,11 @@ make
 ```
 4) Optionally, set configuration flags
 ```
-./meshnamed -listenaddr [::1]:53535 -meshsubnet 200::/7 -debug -useconffile /tmp/meshnamed.conf
+./meshnamed -listenaddr [::1]:53535 -debug -useconffile /tmp/meshnamed.conf
+```
+5) See list of all configuration flags
+```
+./meshnamed -help
 ```
 Add new DNS records to configuration file and restart the daemon to apply settings.
 A record can be of any valid string form parsed by [miekg/dns](https://godoc.org/github.com/miekg/dns#NewRR).
@@ -69,9 +73,17 @@ Set the flag to listen on all interfaces and a standard DNS server port
 
 Run as root and allow incoming connections to port 53/UDP in firewall settings.
 
-## .ygg and .cjd domains
+## Custom top level domains (TLD) and subnet filtering
 
-Just as `.meshname` config file can contain `.ygg` and `.cjd` DNS records
+TLD meshnamed can be configured to resolve custom TLDs.
+To run meshnamed for TLD `.newmesh` with addresses in `fd00::/8` 
+set a flag `-networks newmesh=fd00::/8`.
+
+By default, in addition to `.meshname` it also resolves `.ygg` for IPv6 addresses in 
+`200::/7` subnet and `.cjd` for `fc00::/8`. 
+
+Requests are filtered by subnet validation. Request is ignored if a decoded 
+IPv6 address doesn't match the specified subnet for a TLD.
 
 ## See also
 
