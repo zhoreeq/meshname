@@ -57,10 +57,18 @@ type MeshnameServer struct {
 	networks                   map[string]*net.IPNet
 }
 
-func (s *MeshnameServer) Init(log *log.Logger, listenAddr string, zoneConfigPath string, networks map[string]*net.IPNet) {
+func (s *MeshnameServer) Init(log *log.Logger, listenAddr string, zoneConfigPath string, networks map[string]string) {
 	s.log = log
 	s.listenAddr = listenAddr
-	s.networks = networks
+	s.networks = make(map[string]*net.IPNet)
+	for domain, subnet := range networks {
+		_, validSubnet, err := net.ParseCIDR(subnet)
+		if err != nil {
+			s.log.Errorln(err)
+			continue
+		}
+		s.networks[domain] = validSubnet
+	}
 	s.zoneConfigPath = zoneConfigPath
 	s.zoneConfig = make(map[string][]dns.RR)
 	if s.dnsClient == nil {

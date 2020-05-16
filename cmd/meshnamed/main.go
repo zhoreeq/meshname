@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"os/signal"
@@ -43,17 +42,11 @@ func main() {
 		return
 	}
 
-	networks := make(map[string]*net.IPNet)
+	networks := make(map[string]string)
 	for _, item := range strings.Split(*networksconf, ",") {
-		tokens := strings.SplitN(item, "=", 2)
-		domain, subnet := tokens[0], tokens[1]
-
-		_, validSubnet, err := net.ParseCIDR(subnet)
-		if err != nil {
-			logger.Errorln(err)
-			os.Exit(1)
+		if tokens := strings.SplitN(item, "=", 2); len(tokens) == 2 {
+			networks[tokens[0]] = tokens[1]
 		}
-		networks[domain] = validSubnet
 	}
 
 	s := new(meshname.MeshnameServer)
