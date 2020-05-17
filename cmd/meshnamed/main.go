@@ -3,15 +3,30 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"os"
-	"strings"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gologme/log"
 
 	"github.com/zhoreeq/meshname/src/meshname"
 )
+
+func parseNetworks(networksconf string) (map[string]*net.IPNet, error) {
+	networks := make(map[string]*net.IPNet)
+	for _, item := range strings.Split(networksconf, ",") {
+		if tokens := strings.SplitN(item, "=", 2); len(tokens) == 2 {
+			if _, validSubnet, err := net.ParseCIDR(tokens[1]); err == nil {
+				networks[tokens[0]] = validSubnet
+			} else {
+				return nil, err
+			}
+		}
+	}
+	return networks, nil
+}
 
 func main() {
 	genconf := flag.String("genconf", "", "generate a new config for IP address")
@@ -33,24 +48,28 @@ func main() {
 	}
 
 	if *genconf != "" {
-		confString, err := meshname.GenConf(*genconf, *subdomain)
-		if err != nil {
-			logger.Errorln(err)
+		if conf, err := meshname.GenConf(*genconf, *subdomain); err == nil {
+			fmt.Println(conf)
 		} else {
-			fmt.Println(confString)
+			logger.Errorln(err)
 		}
 		return
 	}
 
-	networks := make(map[string]string)
-	for _, item := range strings.Split(*networksconf, ",") {
-		if tokens := strings.SplitN(item, "=", 2); len(tokens) == 2 {
-			networks[tokens[0]] = tokens[1]
-		}
-	}
 
 	s := new(meshname.MeshnameServer)
-	s.Init(logger, *listenAddr, *useconffile, networks)
+	s.Init(logger, *listenAddr)
+
+	if networks, err := parseNetworks(*networksconf); err == nil {
+		s.SetNetworks(networks)
+	} else {
+		logger.Errorln(err)
+	}
+
+	if *useconffile != "" {
+		s.LoadConfig(*useconffile)
+	}
+
 	s.Start()
 
 	c := make(chan os.Signal, 1)
@@ -63,7 +82,11 @@ func main() {
 		case _ = <-c:
 			return
 		case _ = <-r:
-			s.UpdateConfig()
+			if *useconffile != "" {
+				s.Stop()
+				s.LoadConfig(*useconffile)
+				s.Start()
+			}
 		}
 	}
 }

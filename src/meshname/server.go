@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/gologme/log"
@@ -43,79 +42,58 @@ func GenConf(target, zone string) (string, error) {
 	}
 	subDomain := DomainFromIP(&ip)
 	selfRecord := fmt.Sprintf("\t\t\"%s.%s AAAA %s\"\n", subDomain, zone, target)
-	confString := fmt.Sprintf("{\n\t\"Domain\":\"%s\",\n\t\"Records\":[\n%s\t]\n}", subDomain, selfRecord)
+	confString := fmt.Sprintf("{\n\t\"%s\":[\n%s\t]\n}", subDomain, selfRecord)
 
 	return confString, nil
 }
 
-type MeshnameServer struct {
-	log                        *log.Logger
-	listenAddr, zoneConfigPath string
-	zoneConfig                 map[string][]dns.RR
-	dnsClient                  *dns.Client
-	dnsServer                  *dns.Server
-	networks                   map[string]*net.IPNet
+// Load zoneConfig from a JSON file
+func ParseConfigFile(configPath string) (map[string][]dns.RR, error) {
+	conf, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	var dat map[string][]string
+	if err := json.Unmarshal(conf, &dat); err == nil {
+		return ParseZoneConfigMap(dat)
+	} else {
+		return nil, err
+	}
 }
 
-func (s *MeshnameServer) Init(log *log.Logger, listenAddr string, zoneConfigPath string, networks map[string]string) {
+func ParseZoneConfigMap(zoneConfigMap map[string][]string) (map[string][]dns.RR, error) {
+	var zoneConfig = make(map[string][]dns.RR)
+	for subDomain, records := range zoneConfigMap {
+		for _, r := range records {
+			if rr, err := dns.NewRR(r); err == nil {
+				zoneConfig[subDomain] = append(zoneConfig[subDomain], rr)
+			} else {
+				return nil, err
+			}
+		}
+	}
+	return zoneConfig, nil
+}
+
+type MeshnameServer struct {
+	log        *log.Logger
+	listenAddr string
+	zoneConfig map[string][]dns.RR
+	dnsClient  *dns.Client
+	dnsServer  *dns.Server
+	networks   map[string]*net.IPNet
+}
+
+func (s *MeshnameServer) Init(log *log.Logger, listenAddr string) {
 	s.log = log
 	s.listenAddr = listenAddr
-	s.networks = make(map[string]*net.IPNet)
-	for domain, subnet := range networks {
-		_, validSubnet, err := net.ParseCIDR(subnet)
-		if err != nil {
-			s.log.Errorln(err)
-			continue
-		}
-		s.networks[domain] = validSubnet
-	}
-	s.zoneConfigPath = zoneConfigPath
 	s.zoneConfig = make(map[string][]dns.RR)
+	s.networks = make(map[string]*net.IPNet)
+
 	if s.dnsClient == nil {
 		s.dnsClient = new(dns.Client)
 		s.dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 	}
-	s.LoadConfig()
-}
-
-func (s *MeshnameServer) LoadConfig() {
-	if s.zoneConfigPath == "" {
-		return
-	}
-	for k := range s.zoneConfig {
-		delete(s.zoneConfig, k)
-	}
-
-	reader, err := os.Open(s.zoneConfigPath)
-	if err != nil {
-		s.log.Errorln("Can't open config:", err)
-		return
-	}
-
-	type Zone struct {
-		Domain  string
-		Records []string
-	}
-
-	dec := json.NewDecoder(reader)
-	for {
-		var m Zone
-		if err := dec.Decode(&m); err == io.EOF {
-			break
-		} else if err != nil {
-			s.log.Errorln("Syntax error in config:", err)
-			return
-		}
-		for _, v := range m.Records {
-			rr, err := dns.NewRR(v)
-			if err != nil {
-				s.log.Errorln("Invalid DNS record:", v)
-				continue
-			}
-			s.zoneConfig[m.Domain] = append(s.zoneConfig[m.Domain], rr)
-		}
-	}
-	s.log.Infoln("Meshname config loaded:", s.zoneConfigPath)
 }
 
 func (s *MeshnameServer) Stop() error {
@@ -127,13 +105,29 @@ func (s *MeshnameServer) Stop() error {
 
 func (s *MeshnameServer) Start() error {
 	s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
-	for domain := range s.networks {
-		dns.HandleFunc(domain, s.handleRequest)
-		s.log.Debugln("Handling:", domain)
+	for tld, subnet := range s.networks {
+		dns.HandleFunc(tld, s.handleRequest)
+		s.log.Debugln("Handling:", tld, subnet)
 	}
 	go s.dnsServer.ListenAndServe()
 	s.log.Infoln("Started meshnamed on:", s.listenAddr)
 	return nil
+}
+
+func (s *MeshnameServer) LoadConfig(confPath string) {
+	if zoneConf, err := ParseConfigFile(confPath); err == nil {
+		s.zoneConfig = zoneConf
+	} else {
+		s.log.Errorln("Can't parse config file:", err)
+	}
+}
+
+func (s *MeshnameServer) SetZoneConfig(zoneConfig map[string][]dns.RR) {
+	s.zoneConfig = zoneConfig
+}
+
+func (s *MeshnameServer) SetNetworks(networks map[string]*net.IPNet) {
+	s.networks = networks
 }
 
 func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -192,9 +186,3 @@ func (s *MeshnameServer) isRemoteLookupAllowed(addr net.Addr) bool {
 	return strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:")
 }
 
-func (s *MeshnameServer) UpdateConfig() error {
-	s.Stop()
-	s.LoadConfig()
-	s.Start()
-	return nil
-}

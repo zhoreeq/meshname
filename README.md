@@ -39,18 +39,14 @@ Look for `meshnamed.service` in the source directory for a systemd unit file.
 In this example, meshnamed is configured as authoritative for two domain zones:
 
     {
-            "Domain":"aiag7sesed2aaxgcgbnevruwpy",
-            "Records": [
+            "aiag7sesed2aaxgcgbnevruwpy": [
                     "aiag7sesed2aaxgcgbnevruwpy.meshname. AAAA 200:6fc8:9220:f400:5cc2:305a:4ac6:967e",
                     "_xmpp-client._tcp.aiag7sesed2aaxgcgbnevruwpy.meshname. SRV 5 0 5222 xmpp.aiag7sesed2aaxgcgbnevruwpy.meshname",
                     "_xmpp-server._tcp.aiag7sesed2aaxgcgbnevruwpy.meshname. SRV 5 0 5269 xmpp.aiag7sesed2aaxgcgbnevruwpy.meshname",
                     "xmpp.aiag7sesed2aaxgcgbnevruwpy.meshname. AAAA 300:6fc8:9220:f400::1",
                     "forum.aiag7sesed2aaxgcgbnevruwpy.meshname. CNAME amag7sesed2aaaaaaaaaaaaaau.meshname."
-            ]
-    }
-    {
-            "Domain":"amag7sesed2aaaaaaaaaaaaaau",
-            "Records":[
+            ],
+            "amag7sesed2aaaaaaaaaaaaaau": [
                     "amag7sesed2aaaaaaaaaaaaaau.meshname. AAAA 300:6fc8:9220:f400::5"
             ]
     }
