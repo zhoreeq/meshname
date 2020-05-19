@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strings"
+	"sync"
 
 	"github.com/gologme/log"
 	"github.com/miekg/dns"
@@ -78,10 +79,15 @@ func ParseZoneConfigMap(zoneConfigMap map[string][]string) (map[string][]dns.RR,
 type MeshnameServer struct {
 	log        *log.Logger
 	listenAddr string
-	zoneConfig map[string][]dns.RR
 	dnsClient  *dns.Client
 	dnsServer  *dns.Server
 	networks   map[string]*net.IPNet
+
+	zoneConfigLock sync.RWMutex
+	zoneConfig     map[string][]dns.RR
+
+	startedLock sync.RWMutex
+	started     bool
 }
 
 func (s *MeshnameServer) Init(log *log.Logger, listenAddr string) {
@@ -97,33 +103,51 @@ func (s *MeshnameServer) Init(log *log.Logger, listenAddr string) {
 }
 
 func (s *MeshnameServer) Stop() error {
-	if s.dnsServer != nil {
+	s.startedLock.Lock()
+	defer s.startedLock.Unlock()
+
+	if s.started == true {
 		s.dnsServer.Shutdown()
+		s.started = false
+		return nil
+	} else {
+		return errors.New("MeshnameServer is not running")
 	}
-	return nil
 }
 
 func (s *MeshnameServer) Start() error {
-	s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
-	for tld, subnet := range s.networks {
-		dns.HandleFunc(tld, s.handleRequest)
-		s.log.Debugln("Handling:", tld, subnet)
+	s.startedLock.Lock()
+	defer s.startedLock.Unlock()
+
+	if s.started == false {
+		s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
+		for tld, subnet := range s.networks {
+			dns.HandleFunc(tld, s.handleRequest)
+			s.log.Debugln("Handling:", tld, subnet)
+		}
+		go s.dnsServer.ListenAndServe()
+		s.log.Infoln("Started meshnamed on:", s.listenAddr)
+		s.started = true
+		return nil
+	} else {
+		return errors.New("MeshnameServer is already started")
 	}
-	go s.dnsServer.ListenAndServe()
-	s.log.Infoln("Started meshnamed on:", s.listenAddr)
-	return nil
 }
 
 func (s *MeshnameServer) LoadConfig(confPath string) {
 	if zoneConf, err := ParseConfigFile(confPath); err == nil {
+		s.zoneConfigLock.Lock()
 		s.zoneConfig = zoneConf
+		s.zoneConfigLock.Unlock()
 	} else {
 		s.log.Errorln("Can't parse config file:", err)
 	}
 }
 
 func (s *MeshnameServer) SetZoneConfig(zoneConfig map[string][]dns.RR) {
+	s.zoneConfigLock.Lock()
 	s.zoneConfig = zoneConfig
+	s.zoneConfigLock.Unlock()
 }
 
 func (s *MeshnameServer) SetNetworks(networks map[string]*net.IPNet) {
@@ -135,6 +159,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 
+	s.zoneConfigLock.RLock()
 	for _, q := range r.Question {
 		labels := dns.SplitDomainName(q.Name)
 		if len(labels) < 2 {
@@ -166,6 +191,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			}
 		}
 	}
+	s.zoneConfigLock.RUnlock()
 
 	for remoteServer, questions := range remoteLookups {
 		rm := new(dns.Msg)
@@ -186,3 +212,9 @@ func (s *MeshnameServer) isRemoteLookupAllowed(addr net.Addr) bool {
 	return strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:")
 }
 
+func (s *MeshnameServer) IsStarted() bool {
+	s.startedLock.RLock()
+	started := s.started
+	s.startedLock.RUnlock()
+	return started
+}

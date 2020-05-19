@@ -83,9 +83,7 @@ func main() {
 			return
 		case _ = <-r:
 			if *useconffile != "" {
-				s.Stop()
 				s.LoadConfig(*useconffile)
-				s.Start()
 			}
 		}
 	}
