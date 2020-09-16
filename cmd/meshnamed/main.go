@@ -28,13 +28,21 @@ func parseNetworks(networksconf string) (map[string]*net.IPNet, error) {
 	return networks, nil
 }
 
+var (
+	genconf, subdomain, useconffile, listenAddr, networksconf string
+	debug bool
+)
+
+func init() {
+	flag.StringVar(&genconf, "genconf", "", "generate a new config for IP address")
+	flag.StringVar(&subdomain, "subdomain", "meshname.", "subdomain used to generate config")
+	flag.StringVar(&useconffile, "useconffile", "", "run daemon with a config file")
+	flag.StringVar(&listenAddr, "listenaddr", "[::1]:53535", "address to listen on")
+	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
+	flag.BoolVar(&debug,"debug", false, "enable debug logging")
+}
+
 func main() {
-	genconf := flag.String("genconf", "", "generate a new config for IP address")
-	subdomain := flag.String("subdomain", "meshname.", "subdomain used to generate config")
-	useconffile := flag.String("useconffile", "", "run daemon with a config file")
-	listenAddr := flag.String("listenaddr", "[::1]:53535", "address to listen on")
-	networksconf := flag.String("networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
-	debug := flag.Bool("debug", false, "enable debug logging")
 	flag.Parse()
 
 	var logger *log.Logger
@@ -43,12 +51,12 @@ func main() {
 	logger.EnableLevel("error")
 	logger.EnableLevel("warn")
 	logger.EnableLevel("info")
-	if *debug {
+	if debug {
 		logger.EnableLevel("debug")
 	}
 
-	if *genconf != "" {
-		if conf, err := meshname.GenConf(*genconf, *subdomain); err == nil {
+	if genconf != "" {
+		if conf, err := meshname.GenConf(genconf, subdomain); err == nil {
 			fmt.Println(conf)
 		} else {
 			logger.Errorln(err)
@@ -58,16 +66,16 @@ func main() {
 
 
 	s := new(meshname.MeshnameServer)
-	s.Init(logger, *listenAddr)
+	s.Init(logger, listenAddr)
 
-	if networks, err := parseNetworks(*networksconf); err == nil {
+	if networks, err := parseNetworks(networksconf); err == nil {
 		s.SetNetworks(networks)
 	} else {
 		logger.Errorln(err)
 	}
 
-	if *useconffile != "" {
-		s.LoadConfig(*useconffile)
+	if useconffile != "" {
+		s.LoadConfig(useconffile)
 	}
 
 	s.Start()
@@ -82,8 +90,8 @@ func main() {
 		case _ = <-c:
 			return
 		case _ = <-r:
-			if *useconffile != "" {
-				s.LoadConfig(*useconffile)
+			if useconffile != "" {
+				s.LoadConfig(useconffile)
 			}
 		}
 	}
