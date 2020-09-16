@@ -14,8 +14,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-var DomainZones = []string{"meshname.", "ygg.", "cjd."}
-
 func DomainFromIP(target *net.IP) string {
 	return strings.ToLower(base32.StdEncoding.EncodeToString(*target)[0:26])
 }
