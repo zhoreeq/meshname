@@ -28,6 +28,14 @@ func parseNetworks(networksconf string) (map[string]*net.IPNet, error) {
 	return networks, nil
 }
 
+func loadConfig(s *meshname.MeshnameServer, confPath string) error {
+	zoneConf, err := meshname.ParseConfigFile(confPath)
+	if err == nil {
+		s.SetZoneConfig(zoneConf)
+	}
+	return err
+}
+
 var (
 	genconf, subdomain, useconffile, listenAddr, networksconf string
 	debug bool
@@ -75,7 +83,9 @@ func main() {
 	}
 
 	if useconffile != "" {
-		s.LoadConfig(useconffile)
+		if err := loadConfig(s, useconffile); err != nil {
+			logger.Errorln(err)
+		}
 	}
 
 	s.Start()
@@ -91,7 +101,9 @@ func main() {
 			return
 		case _ = <-r:
 			if useconffile != "" {
-				s.LoadConfig(useconffile)
+				if err := loadConfig(s, useconffile); err != nil {
+					logger.Errorln(err)
+				}
 			}
 		}
 	}
