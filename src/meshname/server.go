@@ -68,16 +68,6 @@ func (s *MeshnameServer) Start() error {
 	}
 }
 
-func (s *MeshnameServer) LoadConfig(confPath string) {
-	if zoneConf, err := ParseConfigFile(confPath); err == nil {
-		s.zoneConfigLock.Lock()
-		s.zoneConfig = zoneConf
-		s.zoneConfigLock.Unlock()
-	} else {
-		s.log.Errorln("Can't parse config file:", err)
-	}
-}
-
 func (s *MeshnameServer) SetZoneConfig(zoneConfig map[string][]dns.RR) {
 	s.zoneConfigLock.Lock()
 	s.zoneConfig = zoneConfig
