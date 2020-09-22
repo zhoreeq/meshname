@@ -11,7 +11,7 @@ import (
 
 	"github.com/gologme/log"
 
-	"github.com/zhoreeq/meshname/src/meshname"
+	"github.com/zhoreeq/meshname/pkg/meshname"
 )
 
 func parseNetworks(networksconf string) (map[string]*net.IPNet, error) {

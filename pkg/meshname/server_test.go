@@ -5,7 +5,7 @@ import  (
 	"net"
 	"testing"
 
-	"github.com/zhoreeq/meshname/src/meshname"
+	"github.com/zhoreeq/meshname/pkg/meshname"
 )
 
 func TestIPFromDomain(t *testing.T) {
