@@ -24,15 +24,17 @@ type MeshnameServer struct {
 	started     bool
 }
 
-func (s *MeshnameServer) Init(log *log.Logger, listenAddr string) {
-	s.log = log
-	s.listenAddr = listenAddr
-	s.zoneConfig = make(map[string][]dns.RR)
-	s.networks = make(map[string]*net.IPNet)
+// New is a constructor for MeshnameServer
+func New(log *log.Logger, listenAddr string) *MeshnameServer {
+	dnsClient := new(dns.Client)
+	dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 
-	if s.dnsClient == nil {
-		s.dnsClient = new(dns.Client)
-		s.dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
+	return &MeshnameServer{
+		log: log,
+		listenAddr: listenAddr,
+		zoneConfig: make(map[string][]dns.RR),
+		networks: make(map[string]*net.IPNet),
+		dnsClient: dnsClient,
 	}
 }
 
@@ -60,7 +62,7 @@ func (s *MeshnameServer) Start() error {
 			s.log.Debugln("Handling:", tld, subnet)
 		}
 		go s.dnsServer.ListenAndServe()
-		s.log.Infoln("Started meshnamed on:", s.listenAddr)
+		s.log.Debugln("MeshnameServer started")
 		s.started = true
 		return nil
 	} else {

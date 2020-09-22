@@ -72,9 +72,7 @@ func main() {
 		return
 	}
 
-
-	s := new(meshname.MeshnameServer)
-	s.Init(logger, listenAddr)
+	s := meshname.New(logger, listenAddr)
 
 	if networks, err := parseNetworks(networksconf); err == nil {
 		s.SetNetworks(networks)
@@ -89,6 +87,7 @@ func main() {
 	}
 
 	s.Start()
+	logger.Infoln("Listening on:", listenAddr)
 
 	c := make(chan os.Signal, 1)
 	r := make(chan os.Signal, 1)
