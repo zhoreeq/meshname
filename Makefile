@@ -8,4 +8,7 @@ all:
 clean:
 	$(RM) meshnamed meshnamed.exe
 
-.PHONY: all clean
+test:
+	go test pkg/meshname/*_test.go
+
+.PHONY: all clean test
