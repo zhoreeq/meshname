@@ -23,14 +23,13 @@ func TestServerLocalDomain(t *testing.T) {
 
 	exampleConfig := make(map[string][]string)
 	exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"] = append(exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"],
-			"test.aiarnf2wpqjxkp6rhivuxbondy.meshname. AAAA 201:1697:567c:1375:3fd1:3a2b:4b85:cd1e")
+		"test.aiarnf2wpqjxkp6rhivuxbondy.meshname. AAAA 201:1697:567c:1375:3fd1:3a2b:4b85:cd1e")
 
 	if zoneConfig, err := meshname.ParseZoneConfigMap(exampleConfig); err == nil {
 		ts.SetZoneConfig(zoneConfig)
 	} else {
 		t.Fatalf("meshname: Failed to parse Meshname config: %s", err)
 	}
-
 
 	ts.Start()
 

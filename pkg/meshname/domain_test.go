@@ -1,10 +1,10 @@
 package meshname
 
-import  (
+import (
 	"bytes"
+	"fmt"
 	"net"
 	"testing"
-	"fmt"
 
 	"github.com/zhoreeq/meshname/pkg/meshname"
 )
@@ -16,7 +16,7 @@ func TestIPFromDomain(t *testing.T) {
 	if ip, err := meshname.IPFromDomain(&test_subdomain); err != nil {
 		t.Fatal(err)
 	} else if bytes.Compare(ip, test_ip) != 0 {
-	   t.Fatalf("Decoding IP error %s != %s", ip.String(), test_ip.String())
+		t.Fatalf("Decoding IP error %s != %s", ip.String(), test_ip.String())
 	}
 }
 

@@ -30,24 +30,23 @@ func New(log *log.Logger, listenAddr string) *MeshnameServer {
 	dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 
 	return &MeshnameServer{
-		log: log,
+		log:        log,
 		listenAddr: listenAddr,
 		zoneConfig: make(map[string][]dns.RR),
-		networks: make(map[string]*net.IPNet),
-		dnsClient: dnsClient,
+		networks:   make(map[string]*net.IPNet),
+		dnsClient:  dnsClient,
 	}
 }
 
-func (s *MeshnameServer) Stop() error {
+func (s *MeshnameServer) Stop() {
 	s.startedLock.Lock()
 	defer s.startedLock.Unlock()
 
-	if s.started == true {
-		s.dnsServer.Shutdown()
+	if s.started {
+		if err := s.dnsServer.Shutdown(); err != nil {
+			s.log.Debugln(err)
+		}
 		s.started = false
-		return nil
-	} else {
-		return errors.New("MeshnameServer is not running")
 	}
 }
 
@@ -55,7 +54,7 @@ func (s *MeshnameServer) Start() error {
 	s.startedLock.Lock()
 	defer s.startedLock.Unlock()
 
-	if s.started == false {
+	if !s.started {
 		s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
 		for tld, subnet := range s.networks {
 			dns.HandleFunc(tld, s.handleRequest)
@@ -129,7 +128,10 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		m.Answer = append(m.Answer, resp.Answer...)
 	}
-	w.WriteMsg(m)
+
+	if err := w.WriteMsg(m); err != nil {
+		s.log.Debugln("Error writing response:", err)
+	}
 }
 
 func (s *MeshnameServer) isRemoteLookupAllowed(addr net.Addr) bool {

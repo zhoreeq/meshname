@@ -10,7 +10,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-
 func GenConf(target, zone string) (string, error) {
 	ip := net.ParseIP(target)
 	if ip == nil {
@@ -50,4 +49,3 @@ func ParseZoneConfigMap(zoneConfigMap map[string][]string) (map[string][]dns.RR,
 	}
 	return zoneConfig, nil
 }
-
