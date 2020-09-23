@@ -1,7 +1,17 @@
 # meshname
 
-Special-use naming system for self-organized IPv6 mesh networks. 
-Implements [Meshname protocol](https://github.com/zhoreeq/meshname/blob/master/protocol.md).
+A universal naming system for all IPv6-based mesh networks, including CJDNS and Yggdrasil. 
+Implements the [Meshname protocol](https://github.com/zhoreeq/meshname/blob/master/protocol.md).
+
+## F.A.Q.
+
+- Q: *Is it like a decentralized DNS thing?*
+- A: Yeah, sort of. With it you can host your own meshname domains and resolve domains of others.
+
+- Q: *Meshname domains are ugly.*
+- A: Yes, if you want decentralization, you either have ugly names or a blockchain. Meshname has ugly names, but it works at least!
+
+## How to install and use
 
 Minimum go version 1.12 is required.
 
@@ -23,12 +33,12 @@ make
 ```
 ./meshnamed -listenaddr [::1]:53535 -debug -useconffile /tmp/meshnamed.conf
 ```
-5) See list of all configuration flags
+5) See the list of all configuration flags
 ```
 ./meshnamed -help
 ```
-Add new DNS records to configuration file and restart the daemon to apply settings.
-A record can be of any valid string form parsed by [miekg/dns](https://godoc.org/github.com/miekg/dns#NewRR).
+Add custom DNS records to the configuration file and restart the daemon to apply settings.
+A DNS record can be of any valid string form parsed by [miekg/dns#NewRR](https://godoc.org/github.com/miekg/dns#NewRR) function (see example configuration file below).
 
 ## systemd unit
 
@@ -36,7 +46,7 @@ Look for `meshnamed.service` in the source directory for a systemd unit file.
 
 ## Example configuration file
 
-In this example, meshnamed is configured as authoritative for two domain zones:
+In this example, meshnamed is configured as authoritative server for two domain zones:
 
     {
             "aiag7sesed2aaxgcgbnevruwpy": [
