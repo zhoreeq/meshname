@@ -38,7 +38,7 @@ func loadConfig(s *meshname.MeshnameServer, confPath string) error {
 
 var (
 	genconf, subdomain, useconffile, listenAddr, networksconf string
-	debug bool
+	debug                                                     bool
 )
 
 func init() {
@@ -47,14 +47,13 @@ func init() {
 	flag.StringVar(&useconffile, "useconffile", "", "run daemon with a config file")
 	flag.StringVar(&listenAddr, "listenaddr", "[::1]:53535", "address to listen on")
 	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
-	flag.BoolVar(&debug,"debug", false, "enable debug logging")
+	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 }
 
 func main() {
 	flag.Parse()
 
-	var logger *log.Logger
-	logger = log.New(os.Stdout, "", log.Flags())
+	logger := log.New(os.Stdout, "", log.Flags())
 
 	logger.EnableLevel("error")
 	logger.EnableLevel("warn")
@@ -86,7 +85,9 @@ func main() {
 		}
 	}
 
-	s.Start()
+	if err := s.Start(); err != nil {
+		logger.Fatal(err)
+	}
 	logger.Infoln("Listening on:", listenAddr)
 
 	c := make(chan os.Signal, 1)
@@ -96,9 +97,9 @@ func main() {
 	defer s.Stop()
 	for {
 		select {
-		case _ = <-c:
+		case <-c:
 			return
-		case _ = <-r:
+		case <-r:
 			if useconffile != "" {
 				if err := loadConfig(s, useconffile); err != nil {
 					logger.Errorln(err)
