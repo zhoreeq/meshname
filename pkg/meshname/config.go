@@ -22,7 +22,7 @@ func GenConf(target, zone string) (string, error) {
 	return confString, nil
 }
 
-// Load zoneConfig from a JSON file
+// Load dnsRecords from a JSON file
 func ParseConfigFile(configPath string) (map[string][]dns.RR, error) {
 	conf, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -30,22 +30,23 @@ func ParseConfigFile(configPath string) (map[string][]dns.RR, error) {
 	}
 	var dat map[string][]string
 	if err := json.Unmarshal(conf, &dat); err == nil {
-		return ParseZoneConfigMap(dat)
+		return ParseDNSRecordsMap(dat)
 	} else {
 		return nil, err
 	}
 }
 
-func ParseZoneConfigMap(zoneConfigMap map[string][]string) (map[string][]dns.RR, error) {
-	var zoneConfig = make(map[string][]dns.RR)
-	for subDomain, records := range zoneConfigMap {
+// ParseDNSRecordsMap takes a string map and returns a resource record map
+func ParseDNSRecordsMap(dnsRecordsMap map[string][]string) (map[string][]dns.RR, error) {
+	var dnsRecords = make(map[string][]dns.RR)
+	for subDomain, records := range dnsRecordsMap {
 		for _, r := range records {
 			if rr, err := dns.NewRR(r); err == nil {
-				zoneConfig[subDomain] = append(zoneConfig[subDomain], rr)
+				dnsRecords[subDomain] = append(dnsRecords[subDomain], rr)
 			} else {
 				return nil, err
 			}
 		}
 	}
-	return zoneConfig, nil
+	return dnsRecords, nil
 }

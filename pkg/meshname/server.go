@@ -17,8 +17,8 @@ type MeshnameServer struct {
 	dnsServer  *dns.Server
 	networks   map[string]*net.IPNet
 
-	zoneConfigLock sync.RWMutex
-	zoneConfig     map[string][]dns.RR
+	dnsRecordsLock sync.RWMutex
+	dnsRecords     map[string][]dns.RR
 
 	startedLock sync.RWMutex
 	started     bool
@@ -32,7 +32,7 @@ func New(log *log.Logger, listenAddr string) *MeshnameServer {
 	return &MeshnameServer{
 		log:        log,
 		listenAddr: listenAddr,
-		zoneConfig: make(map[string][]dns.RR),
+		dnsRecords: make(map[string][]dns.RR),
 		networks:   make(map[string]*net.IPNet),
 		dnsClient:  dnsClient,
 	}
@@ -69,13 +69,13 @@ func (s *MeshnameServer) Start() error {
 	}
 }
 
-func (s *MeshnameServer) SetZoneConfig(zoneConfig map[string][]dns.RR) {
-	s.zoneConfigLock.Lock()
-	s.zoneConfig = zoneConfig
-	s.zoneConfigLock.Unlock()
+func (s *MeshnameServer) ConfigureDNSRecords(dnsRecords map[string][]dns.RR) {
+	s.dnsRecordsLock.Lock()
+	s.dnsRecords = dnsRecords
+	s.dnsRecordsLock.Unlock()
 }
 
-func (s *MeshnameServer) SetNetworks(networks map[string]*net.IPNet) {
+func (s *MeshnameServer) ConfigureNetworks(networks map[string]*net.IPNet) {
 	s.networks = networks
 }
 
@@ -84,7 +84,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 
-	s.zoneConfigLock.RLock()
+	s.dnsRecordsLock.RLock()
 	for _, q := range r.Question {
 		labels := dns.SplitDomainName(q.Name)
 		if len(labels) < 2 {
@@ -93,7 +93,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		subDomain := labels[len(labels)-2]
 
-		if records, ok := s.zoneConfig[subDomain]; ok {
+		if records, ok := s.dnsRecords[subDomain]; ok {
 			for _, rec := range records {
 				if h := rec.Header(); h.Name == q.Name && h.Rrtype == q.Qtype && h.Class == q.Qclass {
 					m.Answer = append(m.Answer, rec)
@@ -116,7 +116,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			}
 		}
 	}
-	s.zoneConfigLock.RUnlock()
+	s.dnsRecordsLock.RUnlock()
 
 	for remoteServer, questions := range remoteLookups {
 		rm := new(dns.Msg)

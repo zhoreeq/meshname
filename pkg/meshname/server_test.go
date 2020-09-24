@@ -17,16 +17,15 @@ func TestServerLocalDomain(t *testing.T) {
 	log := log.New(os.Stdout, "", log.Flags())
 
 	ts := meshname.New(log, bindAddr)
-	// ...
 	yggIPNet := &net.IPNet{IP: net.ParseIP("200::"), Mask: net.CIDRMask(7, 128)}
-	ts.SetNetworks(map[string]*net.IPNet{"ygg": yggIPNet, "meshname": yggIPNet})
+	ts.ConfigureNetworks(map[string]*net.IPNet{"ygg": yggIPNet, "meshname": yggIPNet})
 
 	exampleConfig := make(map[string][]string)
 	exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"] = append(exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"],
 		"test.aiarnf2wpqjxkp6rhivuxbondy.meshname. AAAA 201:1697:567c:1375:3fd1:3a2b:4b85:cd1e")
 
-	if zoneConfig, err := meshname.ParseZoneConfigMap(exampleConfig); err == nil {
-		ts.SetZoneConfig(zoneConfig)
+	if dnsRecords, err := meshname.ParseDNSRecordsMap(exampleConfig); err == nil {
+		ts.ConfigureDNSRecords(dnsRecords)
 	} else {
 		t.Fatalf("meshname: Failed to parse Meshname config: %s", err)
 	}
