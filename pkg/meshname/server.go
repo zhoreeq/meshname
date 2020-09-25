@@ -65,7 +65,11 @@ func (s *MeshnameServer) Start() error {
 			dns.HandleFunc(tld, s.handleRequest)
 			s.log.Debugln("Handling:", tld, subnet)
 		}
-		go s.dnsServer.ListenAndServe()
+		go func(){
+			if err := s.dnsServer.ListenAndServe(); err != nil {
+				s.log.Fatalln("MeshnameServer failed to start:", err)
+			}
+		}()
 		<-waitStarted
 
 		s.log.Debugln("MeshnameServer started")
