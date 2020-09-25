@@ -71,14 +71,12 @@ func main() {
 		return
 	}
 
-	s := meshname.New(logger, listenAddr)
-
-	if networks, err := parseNetworks(networksconf); err == nil {
-		s.ConfigureNetworks(networks)
-	} else {
+	networks, err := parseNetworks(networksconf)
+	if err != nil {
 		logger.Fatalln(err)
 	}
 
+	s := meshname.New(logger, listenAddr, networks)
 	if useconffile != "" {
 		if err := loadConfig(s, useconffile); err != nil {
 			logger.Fatalln(err)

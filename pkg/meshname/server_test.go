@@ -15,10 +15,10 @@ import (
 func TestServerLocalDomain(t *testing.T) {
 	bindAddr := "[::1]:54545"
 	log := log.New(os.Stdout, "", log.Flags())
-
-	ts := meshname.New(log, bindAddr)
 	yggIPNet := &net.IPNet{IP: net.ParseIP("200::"), Mask: net.CIDRMask(7, 128)}
-	ts.ConfigureNetworks(map[string]*net.IPNet{"ygg": yggIPNet, "meshname": yggIPNet})
+	networks := map[string]*net.IPNet{"meshname": yggIPNet}
+
+	ts := meshname.New(log, bindAddr, networks)
 
 	exampleConfig := make(map[string][]string)
 	exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"] = append(exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"],

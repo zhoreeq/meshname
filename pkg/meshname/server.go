@@ -25,7 +25,7 @@ type MeshnameServer struct {
 }
 
 // New is a constructor for MeshnameServer
-func New(log *log.Logger, listenAddr string) *MeshnameServer {
+func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet) *MeshnameServer {
 	dnsClient := new(dns.Client)
 	dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 
@@ -33,7 +33,7 @@ func New(log *log.Logger, listenAddr string) *MeshnameServer {
 		log:        log,
 		listenAddr: listenAddr,
 		dnsRecords: make(map[string][]dns.RR),
-		networks:   make(map[string]*net.IPNet),
+		networks:   networks,
 		dnsClient:  dnsClient,
 	}
 }
@@ -55,12 +55,19 @@ func (s *MeshnameServer) Start() error {
 	defer s.startedLock.Unlock()
 
 	if !s.started {
-		s.dnsServer = &dns.Server{Addr: s.listenAddr, Net: "udp"}
+		waitStarted := make(chan struct{})
+		s.dnsServer = &dns.Server{
+			Addr: s.listenAddr,
+			Net: "udp",
+			NotifyStartedFunc: func(){ close(waitStarted) },
+		}
 		for tld, subnet := range s.networks {
 			dns.HandleFunc(tld, s.handleRequest)
 			s.log.Debugln("Handling:", tld, subnet)
 		}
 		go s.dnsServer.ListenAndServe()
+		<-waitStarted
+
 		s.log.Debugln("MeshnameServer started")
 		s.started = true
 		return nil
@@ -73,10 +80,6 @@ func (s *MeshnameServer) ConfigureDNSRecords(dnsRecords map[string][]dns.RR) {
 	s.dnsRecordsLock.Lock()
 	s.dnsRecords = dnsRecords
 	s.dnsRecordsLock.Unlock()
-}
-
-func (s *MeshnameServer) ConfigureNetworks(networks map[string]*net.IPNet) {
-	s.networks = networks
 }
 
 func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
