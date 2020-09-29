@@ -30,7 +30,7 @@ The name space is derived from its IPv6 address as follows:
 
     b'\x02\x00o\xc8\x92 \xf4\x00\\\xc20ZJ\xc6\x96~'
 
-2) The binary value is encoded to base32:
+2) The binary value is encoded to base32 (RFC 4648):
 
     AIAG7SESED2AAXGCGBNEVRUWPY======
 
