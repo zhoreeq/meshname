@@ -11,6 +11,9 @@ LABEL maintainer="George <zhoreeq@users.noreply.github.com>"
 COPY --from=builder /src/meshnamed /usr/bin/meshnamed
 
 USER nobody
-EXPOSE 53535
 
-CMD ["/usr/bin/meshnamed", "--help"]
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+EXPOSE 53535/udp
+CMD ["meshnamed"]
