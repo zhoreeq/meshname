@@ -16,6 +16,7 @@ type MeshnameServer struct {
 	dnsClient  *dns.Client
 	dnsServer  *dns.Server
 	networks   map[string]*net.IPNet
+	allowRemote bool
 
 	dnsRecordsLock sync.RWMutex
 	dnsRecords     map[string][]dns.RR
@@ -25,7 +26,7 @@ type MeshnameServer struct {
 }
 
 // New is a constructor for MeshnameServer
-func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet) *MeshnameServer {
+func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet, allowRemote bool) *MeshnameServer {
 	dnsClient := new(dns.Client)
 	dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 
@@ -35,6 +36,7 @@ func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet) *Me
 		dnsRecords: make(map[string][]dns.RR),
 		networks:   networks,
 		dnsClient:  dnsClient,
+		allowRemote: allowRemote,
 	}
 }
 
@@ -143,6 +145,9 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 func (s *MeshnameServer) isRemoteLookupAllowed(addr net.Addr) bool {
 	// TODO prefix whitelists ?
+	if s.allowRemote {
+		return true
+	}
 	ra := addr.String()
 	return strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:")
 }

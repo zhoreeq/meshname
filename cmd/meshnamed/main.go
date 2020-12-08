@@ -38,7 +38,7 @@ func loadConfig(s *meshname.MeshnameServer, confPath string) error {
 
 var (
 	genconf, subdomain, useconffile, listenAddr, networksconf string
-	debug                                                     bool
+	debug, allowRemote                                        bool
 )
 
 func init() {
@@ -47,6 +47,7 @@ func init() {
 	flag.StringVar(&useconffile, "useconffile", "", "run daemon with a config file")
 	flag.StringVar(&listenAddr, "listenaddr", "[::1]:53535", "address to listen on")
 	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
+	flag.BoolVar(&allowRemote, "allowremote", false, "allow remote queries from any IP address")
 	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 }
 
@@ -76,7 +77,7 @@ func main() {
 		logger.Fatalln(err)
 	}
 
-	s := meshname.New(logger, listenAddr, networks)
+	s := meshname.New(logger, listenAddr, networks, allowRemote)
 	if useconffile != "" {
 		if err := loadConfig(s, useconffile); err != nil {
 			logger.Fatalln(err)
