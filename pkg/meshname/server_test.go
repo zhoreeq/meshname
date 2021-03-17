@@ -17,8 +17,9 @@ func TestServerLocalDomain(t *testing.T) {
 	log := log.New(os.Stdout, "", log.Flags())
 	yggIPNet := &net.IPNet{IP: net.ParseIP("200::"), Mask: net.CIDRMask(7, 128)}
 	networks := map[string]*net.IPNet{"meshname": yggIPNet}
+	allowRemote := false
 
-	ts := meshname.New(log, bindAddr, networks)
+	ts := meshname.New(log, bindAddr, networks, allowRemote)
 
 	exampleConfig := make(map[string][]string)
 	exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"] = append(exampleConfig["aiarnf2wpqjxkp6rhivuxbondy"],
