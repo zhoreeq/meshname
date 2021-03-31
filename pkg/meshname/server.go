@@ -92,6 +92,7 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	var remoteLookups = make(map[string][]dns.Question)
 	m := new(dns.Msg)
 	m.SetReply(r)
+	s.log.Debugln(r.String())
 
 	s.dnsRecordsLock.RLock()
 	for _, q := range r.Question {
@@ -129,12 +130,14 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 	for remoteServer, questions := range remoteLookups {
 		rm := new(dns.Msg)
+		rm.RecursionDesired = true
 		rm.Question = questions
 		resp, _, err := s.dnsClient.Exchange(rm, "["+remoteServer+"]:53") // no retries
 		if err != nil {
 			s.log.Debugln(err)
 			continue
 		}
+		s.log.Debugln(resp.String())
 		m.Answer = append(m.Answer, resp.Answer...)
 	}
 
