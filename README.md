@@ -1,5 +1,7 @@
 # meshname
 
+<img src="https://raw.githubusercontent.com/zhoreeq/meshname/master/img/logo-medium.png">
+
 A universal naming system for all IPv6-based mesh networks, including CJDNS and Yggdrasil. 
 Implements the [Meshname protocol](https://github.com/zhoreeq/meshname/blob/master/protocol.md).
 
