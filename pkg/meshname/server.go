@@ -11,12 +11,13 @@ import (
 )
 
 type MeshnameServer struct {
-	log        *log.Logger
-	listenAddr string
-	dnsClient  *dns.Client
-	dnsServer  *dns.Server
-	networks   map[string]*net.IPNet
-	allowRemote bool
+	log          *log.Logger
+	listenAddr   string
+	dnsClient    *dns.Client
+	dnsServer    *dns.Server
+	networks     map[string]*net.IPNet
+	enableMeshIP bool
+	allowRemote  bool
 
 	dnsRecordsLock sync.RWMutex
 	dnsRecords     map[string][]dns.RR
@@ -26,17 +27,18 @@ type MeshnameServer struct {
 }
 
 // New is a constructor for MeshnameServer
-func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet, allowRemote bool) *MeshnameServer {
+func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet, enableMeshIP bool, allowRemote bool) *MeshnameServer {
 	dnsClient := new(dns.Client)
 	dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 
 	return &MeshnameServer{
-		log:        log,
-		listenAddr: listenAddr,
-		dnsRecords: make(map[string][]dns.RR),
-		networks:   networks,
-		dnsClient:  dnsClient,
-		allowRemote: allowRemote,
+		log:          log,
+		listenAddr:   listenAddr,
+		dnsRecords:   make(map[string][]dns.RR),
+		networks:     networks,
+		dnsClient:    dnsClient,
+		enableMeshIP: enableMeshIP,
+		allowRemote:  allowRemote,
 	}
 }
 
@@ -59,15 +61,20 @@ func (s *MeshnameServer) Start() error {
 	if !s.started {
 		waitStarted := make(chan struct{})
 		s.dnsServer = &dns.Server{
-			Addr: s.listenAddr,
-			Net: "udp",
-			NotifyStartedFunc: func(){ close(waitStarted) },
+			Addr:              s.listenAddr,
+			Net:               "udp",
+			NotifyStartedFunc: func() { close(waitStarted) },
 		}
 		for tld, subnet := range s.networks {
-			dns.HandleFunc(tld, s.handleRequest)
+			dns.HandleFunc(tld, s.handleMeshnameRequest)
 			s.log.Debugln("Handling:", tld, subnet)
 		}
-		go func(){
+		if s.enableMeshIP {
+			dns.HandleFunc("meship", s.handleMeshIPRequest)
+			s.log.Debugln("Handling: meship ::/0")
+		}
+
+		go func() {
 			if err := s.dnsServer.ListenAndServe(); err != nil {
 				s.log.Fatalln("MeshnameServer failed to start:", err)
 			}
@@ -88,7 +95,7 @@ func (s *MeshnameServer) ConfigureDNSRecords(dnsRecords map[string][]dns.RR) {
 	s.dnsRecordsLock.Unlock()
 }
 
-func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
+func (s *MeshnameServer) handleMeshnameRequest(w dns.ResponseWriter, r *dns.Msg) {
 	var remoteLookups = make(map[string][]dns.Question)
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -139,6 +146,34 @@ func (s *MeshnameServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		s.log.Debugln(resp.String())
 		m.Answer = append(m.Answer, resp.Answer...)
+	}
+
+	if err := w.WriteMsg(m); err != nil {
+		s.log.Debugln("Error writing response:", err)
+	}
+}
+
+func (s *MeshnameServer) handleMeshIPRequest(w dns.ResponseWriter, r *dns.Msg) {
+	m := new(dns.Msg)
+	m.SetReply(r)
+
+	for _, q := range r.Question {
+		labels := dns.SplitDomainName(q.Name)
+		// resolve only 2nd level domains and AAAA type
+		if len(labels) != 2 || q.Qtype != dns.TypeAAAA || q.Qclass != dns.ClassINET {
+			s.log.Debugln("Error: invalid resource requested")
+			continue
+		}
+
+		if resolvedAddr, err := IPFromDomain(&labels[0]); err == nil {
+			answer := new(dns.AAAA)
+			answer.Hdr = dns.RR_Header{Name: q.Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 3600}
+			answer.AAAA = resolvedAddr
+
+			m.Answer = append(m.Answer, answer)
+		} else {
+			s.log.Debugln(err)
+		}
 	}
 
 	if err := w.WriteMsg(m); err != nil {
