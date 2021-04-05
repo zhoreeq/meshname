@@ -38,6 +38,7 @@ func loadConfig(s *meshname.MeshnameServer, confPath string) error {
 
 var (
 	genconf, subdomain, useconffile, listenAddr, networksconf string
+	getName, getIP                                          string
 	debug, noMeshIP, allowRemote                              bool
 )
 
@@ -48,6 +49,8 @@ func init() {
 	flag.StringVar(&listenAddr, "listenaddr", "[::1]:53535", "address to listen on")
 	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
 	flag.BoolVar(&noMeshIP, "nomeship", false, "disable .meship resolver")
+	flag.StringVar(&getName, "getname", "", "convert IPv6 address to a name")
+	flag.StringVar(&getIP, "getip", "", "convert a name to IPv6 address")
 	flag.BoolVar(&allowRemote, "allowremote", false, "allow remote queries from any IP address")
 	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 }
@@ -64,7 +67,22 @@ func main() {
 		logger.EnableLevel("debug")
 	}
 
-	if genconf != "" {
+	if getName != "" {
+		ip := net.ParseIP(getName)
+		if ip == nil {
+			logger.Fatal("Invalid IP address")
+		}
+		subDomain := meshname.DomainFromIP(&ip)
+		fmt.Println(subDomain)
+		return
+	} else if getIP != "" {
+		ip, err := meshname.IPFromDomain(&getIP)
+		if err != nil {
+			logger.Fatal(err)
+		}
+		fmt.Println(ip)
+		return
+	} else if genconf != "" {
 		if conf, err := meshname.GenConf(genconf, subdomain); err == nil {
 			fmt.Println(conf)
 		} else {
