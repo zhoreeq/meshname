@@ -1,0 +1,28 @@
+#!/sbin/openrc-run
+# Distributed under the terms of the GNU General Public License v2
+
+extra_started_commands="reload"
+command="/usr/bin/meshnamed"
+description="Distributed naming system for IPv6 mesh networks"
+pidfile="/run/meshnamed.pid"
+logfile="/var/run/meshnamed.log"
+start_stop_daemon_args="--user nobody --group nobody -listenaddr '[::1]:53535' -useconffile /etc/meshnamed.conf"
+
+start() {
+    ebegin "Starting Distributed naming system for IPv6 mesh networks"
+    start-stop-daemon --start --exec "${command}" --pidfile "${pidfile}" --background \
+        --stdout "${logfile}" --stderr "${logfile}"
+    eend $?
+}
+
+stop() {
+    ebegin "Distributed naming system for IPv6 mesh networks"
+    start-stop-daemon --stop --exec "${command}" --pidfile "${pidfile}"
+    eend $?
+}
+
+reload() {
+    stop
+    sleep 5
+    start
+}
