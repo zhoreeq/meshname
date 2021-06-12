@@ -146,6 +146,8 @@ func (s *MeshnameServer) handleMeshnameRequest(w dns.ResponseWriter, r *dns.Msg)
 		}
 		s.log.Debugln(resp.String())
 		m.Answer = append(m.Answer, resp.Answer...)
+		m.Ns = append(m.Ns, resp.Ns...)
+		m.Extra = append(m.Extra, resp.Extra...)
 	}
 
 	if err := w.WriteMsg(m); err != nil {
