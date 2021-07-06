@@ -47,7 +47,7 @@ func init() {
 	flag.StringVar(&subdomain, "subdomain", "meshname.", "subdomain used to generate config")
 	flag.StringVar(&useconffile, "useconffile", "", "run daemon with a config file")
 	flag.StringVar(&listenAddr, "listenaddr", "[::1]:53535", "address to listen on")
-	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0", "TLD=subnet list separated by comma")
+	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0,vapordns=::/0", "TLD=subnet list separated by comma")
 	flag.BoolVar(&noMeshIP, "nomeship", false, "disable .meship resolver")
 	flag.StringVar(&getName, "getname", "", "convert IPv6 address to a name")
 	flag.StringVar(&getIP, "getip", "", "convert a name to IPv6 address")
