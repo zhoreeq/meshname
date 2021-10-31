@@ -3,7 +3,6 @@ package meshname
 import (
 	"errors"
 	"net"
-	"strings"
 	"sync"
 
 	"github.com/gologme/log"
@@ -17,14 +16,13 @@ type MeshnameServer struct {
 	dnsServer    *dns.Server
 	networks     map[string]*net.IPNet
 	enableMeshIP bool
-	allowRemote  bool
 
 	startedLock sync.RWMutex
 	started     bool
 }
 
 // New is a constructor for MeshnameServer
-func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet, enableMeshIP bool, allowRemote bool) *MeshnameServer {
+func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet, enableMeshIP bool) *MeshnameServer {
 	dnsClient := new(dns.Client)
 	dnsClient.Timeout = 5000000000 // increased 5 seconds timeout
 
@@ -34,7 +32,6 @@ func New(log *log.Logger, listenAddr string, networks map[string]*net.IPNet, ena
 		networks:     networks,
 		dnsClient:    dnsClient,
 		enableMeshIP: enableMeshIP,
-		allowRemote:  allowRemote,
 	}
 }
 
@@ -99,21 +96,18 @@ func (s *MeshnameServer) handleMeshnameRequest(w dns.ResponseWriter, r *dns.Msg)
 		}
 		subDomain := labels[len(labels)-2]
 
-		if s.isRemoteLookupAllowed(w.RemoteAddr()) {
-			// do remote lookups only for local clients
-			resolvedAddr, err := IPFromDomain(&subDomain)
-			if err != nil {
-				s.log.Debugln(err)
-				continue
-			}
-			// check subnet validity
-			tld := labels[len(labels)-1]
+		resolvedAddr, err := IPFromDomain(&subDomain)
+		if err != nil {
+			s.log.Debugln(err)
+			continue
+		}
+		// check subnet validity
+		tld := labels[len(labels)-1]
 
-			if subnet, ok := s.networks[tld]; ok && subnet.Contains(resolvedAddr) {
-				remoteLookups[resolvedAddr.String()] = append(remoteLookups[resolvedAddr.String()], q)
-			} else {
-				s.log.Debugln("Error: subnet doesn't match")
-			}
+		if subnet, ok := s.networks[tld]; ok && subnet.Contains(resolvedAddr) {
+			remoteLookups[resolvedAddr.String()] = append(remoteLookups[resolvedAddr.String()], q)
+		} else {
+			s.log.Debugln("Error: subnet doesn't match")
 		}
 	}
 
@@ -163,15 +157,6 @@ func (s *MeshnameServer) handleMeshIPRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if err := w.WriteMsg(m); err != nil {
 		s.log.Debugln("Error writing response:", err)
 	}
-}
-
-func (s *MeshnameServer) isRemoteLookupAllowed(addr net.Addr) bool {
-	// TODO prefix whitelists ?
-	if s.allowRemote {
-		return true
-	}
-	ra := addr.String()
-	return strings.HasPrefix(ra, "[::1]:") || strings.HasPrefix(ra, "127.0.0.1:")
 }
 
 func (s *MeshnameServer) IsStarted() bool {

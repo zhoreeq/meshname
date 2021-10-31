@@ -30,8 +30,8 @@ func parseNetworks(networksconf string) (map[string]*net.IPNet, error) {
 
 var (
 	listenAddr, networksconf string
-	getName, getIP                      string
-	debug, noMeshIP, allowRemote        bool
+	getName, getIP           string
+	debug, noMeshIP          bool
 )
 
 func init() {
@@ -40,7 +40,6 @@ func init() {
 	flag.BoolVar(&noMeshIP, "nomeship", false, "disable .meship resolver")
 	flag.StringVar(&getName, "getname", "", "convert IPv6 address to a name")
 	flag.StringVar(&getIP, "getip", "", "convert a name to IPv6 address")
-	flag.BoolVar(&allowRemote, "allowremote", false, "allow remote queries from any IP address")
 	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 }
 
@@ -78,7 +77,7 @@ func main() {
 		logger.Fatalln(err)
 	}
 
-	s := meshname.New(logger, listenAddr, networks, !noMeshIP, allowRemote)
+	s := meshname.New(logger, listenAddr, networks, !noMeshIP)
 
 	if err := s.Start(); err != nil {
 		logger.Fatal(err)
