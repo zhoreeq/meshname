@@ -60,9 +60,6 @@ src_install() {
 }
 
 pkg_postinst() {
-    elog "The meshname config file must be generated before use:"
-    elog "  # meshnamed -genconf <IPv6> -subdomain meshname | tee /etc/meshnamed.conf"
-    elog
     elog "The meshname daemon will have to be started before use:"
     if use systemd ; then
         elog "  # systemctl start meshnamed"

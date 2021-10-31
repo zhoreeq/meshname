@@ -9,7 +9,7 @@ Group=nogroup
 ProtectHome=true
 ProtectSystem=true
 SyslogIdentifier=meshnamed
-ExecStart=/usr/local/bin/meshnamed -listenaddr [::1]:53535 -useconffile /etc/meshnamed.conf
+ExecStart=/usr/local/bin/meshnamed -listenaddr [::1]:53535
 Restart=always
 TimeoutStopSec=5
 

@@ -28,24 +28,13 @@ func parseNetworks(networksconf string) (map[string]*net.IPNet, error) {
 	return networks, nil
 }
 
-func loadConfig(s *meshname.MeshnameServer, confPath string) error {
-	dnsRecords, err := meshname.ParseConfigFile(confPath)
-	if err == nil {
-		s.ConfigureDNSRecords(dnsRecords)
-	}
-	return err
-}
-
 var (
-	genconf, subdomain, useconffile, listenAddr, networksconf string
-	getName, getIP                                          string
-	debug, noMeshIP, allowRemote                              bool
+	listenAddr, networksconf string
+	getName, getIP                      string
+	debug, noMeshIP, allowRemote        bool
 )
 
 func init() {
-	flag.StringVar(&genconf, "genconf", "", "generate a new config for IP address")
-	flag.StringVar(&subdomain, "subdomain", "meshname.", "subdomain used to generate config")
-	flag.StringVar(&useconffile, "useconffile", "", "run daemon with a config file")
 	flag.StringVar(&listenAddr, "listenaddr", "[::1]:53535", "address to listen on")
 	flag.StringVar(&networksconf, "networks", "ygg=200::/7,cjd=fc00::/8,meshname=::/0,popura=::/0", "TLD=subnet list separated by comma")
 	flag.BoolVar(&noMeshIP, "nomeship", false, "disable .meship resolver")
@@ -82,13 +71,6 @@ func main() {
 		}
 		fmt.Println(ip)
 		return
-	} else if genconf != "" {
-		if conf, err := meshname.GenConf(genconf, subdomain); err == nil {
-			fmt.Println(conf)
-		} else {
-			logger.Errorln(err)
-		}
-		return
 	}
 
 	networks, err := parseNetworks(networksconf)
@@ -97,11 +79,6 @@ func main() {
 	}
 
 	s := meshname.New(logger, listenAddr, networks, !noMeshIP, allowRemote)
-	if useconffile != "" {
-		if err := loadConfig(s, useconffile); err != nil {
-			logger.Fatalln(err)
-		}
-	}
 
 	if err := s.Start(); err != nil {
 		logger.Fatal(err)
@@ -117,12 +94,6 @@ func main() {
 		select {
 		case <-c:
 			return
-		case <-r:
-			if useconffile != "" {
-				if err := loadConfig(s, useconffile); err != nil {
-					logger.Errorln(err)
-				}
-			}
 		}
 	}
 }
