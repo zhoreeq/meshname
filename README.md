@@ -19,6 +19,12 @@ Use a full-featured DNS server with the meshname protocol support, i.e. [PopuraD
 
 For a standalone .meshname stub resolver see `USAGE.md`
 
+## Alternative implementations
+
+[Mario DNS](https://notabug.org/acetone/mario-dns) by acetone, a C++ implementation with a web interface.
+
+[Ruby gem](https://rubygems.org/gems/meshname) by marek22k, [source](https://github.com/marek22k/meshname).
+
 ## See also
 
 [YggNS](https://github.com/russian-meshnet/YggNS/blob/master/README.md)
