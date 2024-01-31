@@ -4,10 +4,31 @@ Wants=network.target
 After=network.target
 
 [Service]
-User=nobody
-Group=nogroup
+RemoveIPC=true
+DynamicUser=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+MemoryDenyWriteExecute=true
+LockPersonality=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET6
+RestrictRealtime=true
+ProtectKernelTunables=true
+ProtectHostname=true
 ProtectHome=true
-ProtectSystem=true
+ProtectProc=ptraceable
+ProtectSystem=strict
+ProtectClock=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+PrivateTmp=true
+PrivateUsers=true
+PrivateDevices=true
+ProcSubset=pid
+SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @obsolete @privileged @raw-io @reboot @resources @swap
+
 SyslogIdentifier=meshnamed
 ExecStart=/usr/local/bin/meshnamed -listenaddr [::1]:53535
 Restart=always
