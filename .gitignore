@@ -1,0 +1,6 @@
+# Binary output
+meshnamed
+
+# Debian package
+deb/meshname.deb
+deb/package/

@@ -1,0 +1,8 @@
+Package: meshname
+Version: 0.2.0
+Architecture: %ARCHITECTURE%
+Section: net
+Priority: optional
+Homepage: https://github.com/zhoreeq/meshname
+Maintainer: George <zhoreeq@protonmail.com>
+Description: Distributed naming system for IPv6 mesh networks
