@@ -23,7 +23,7 @@ For a standalone .meshname stub resolver see `USAGE.md`
 
 [Mario DNS](https://notabug.org/acetone/mario-dns) by acetone, a C++ implementation with a web interface.
 
-[Ruby gem](https://rubygems.org/gems/meshname) by marek22k, [source](https://github.com/marek22k/meshname).
+[Ruby gem](https://rubygems.org/gems/meshname) by marek22k, [source](https://codeberg.org/mark22k/meshname/).
 
 ## See also
 
